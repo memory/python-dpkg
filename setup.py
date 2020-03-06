@@ -1,17 +1,19 @@
 import setuptools
 from distutils.core import setup
 
-__VERSION__ = '1.3.2'
+__VERSION__ = '1.3.3'
 
 setup(
     name='pydpkg',
     packages=['pydpkg'],  # this must be the same as the name above
     version=__VERSION__,
     description='A python library for parsing debian package control headers and comparing version strings',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Nathan J. Mehl',
-    author_email='n@climate.com',
-    url='https://github.com/theclimatecorporation/python-dpkg',
-    download_url='https://github.com/theclimatecorporation/python-dpkg/tarball/%s' % __VERSION__,
+    author_email='pypi@memory.blank.org',
+    url='https://github.com/memory/python-dpkg',
+    download_url='https://github.com/memory/python-dpkg/tarball/%s' % __VERSION__,
     keywords=['apt', 'debian', 'dpkg', 'packaging'],
     setup_requires=[
         'wheel'
