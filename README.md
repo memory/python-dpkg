@@ -19,10 +19,15 @@ This is primarily intended for use on platforms that do not normally
 ship [python-apt](http://apt.alioth.debian.org/python-apt-doc/) due to
 licensing restrictions or the lack of a native libapt.so (e.g. macOS)
 
-Currently only tested on CPython 2.7 and 3.5, but at least in theory should run
+Currently only tested on CPython 3.x, but at least in theory should run
 on any python distribution that can install the [arpy](https://pypi.python.org/pypi/arpy/)
 library.
-   
+
+(Note: python 2.7 compatibility was removed in version 1.4.0.  We are
+keeping a 1.3 release branch alive and are trying to make a good faith
+effort to backport fixes there, but it's strictly on a best-effort /
+spare-time basis, and we urge users to update to py3 as soon as possible.)
+
 ## Installing
 
 Install the 'pydpkg' package from [PyPi](https://pypi.python.org) using
@@ -46,7 +51,7 @@ the [pip](https://packaging.python.org/installing/) tool:
     >>> dp.headers
     {'maintainer': u'Climate Corp Engineering <no-reply@climate.com>', 'description': u'testdeb\n a bogus debian package for testing dpkg builds', 'package': u'testdeb', 'section': u'base', 'priority': u'extra', 'installed-size': u'0', 'version': u'1:0.0.0-test', 'architecture': u'all'}
 
-    >>> print dp
+    >>> print(dp)
     Package: testdeb
     Version: 1:0.0.0-test
     Section: base
