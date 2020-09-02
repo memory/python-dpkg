@@ -1,7 +1,7 @@
 target/
 *.egg-info
 .cache
-venv/
+venv*/
 *.whl
 *.pyc
 __pycache__
