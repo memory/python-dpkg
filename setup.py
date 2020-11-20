@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__VERSION__ = "1.4.4"
+__VERSION__ = "1.5.0"
 
 setup(
     name="pydpkg",
@@ -33,6 +33,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: System :: Archiving :: Packaging",
     ],

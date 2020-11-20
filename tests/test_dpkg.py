@@ -123,8 +123,8 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.dstringcmp("0", "0"), 0)
         self.assertEqual(Dpkg.dstringcmp("a", "a"), 0)
 
-        # taken from
-        # http://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+        # taken from section 5.6.12 at:
+        # https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         self.assertEqual(
             sorted(["a", "", "~", "~~a", "~~"], key=Dpkg.dstringcmp_key),
             ["~~", "~~a", "~", "", "a"],
@@ -192,6 +192,16 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_versions("0.0.9", "0.0.10"), -1)
         self.assertEqual(Dpkg.compare_versions("0.9.0", "0.10.0"), -1)
         self.assertEqual(Dpkg.compare_versions("9.0.0", "10.0.0"), -1)
+        self.assertEqual(Dpkg.compare_versions("1.2.3-1~deb7u1", "1.2.3-1"), -1)
+        self.assertEqual(
+            Dpkg.compare_versions(
+                "2.7.4+reloaded2-13ubuntu1", "2.7.4+reloaded2-13+deb9u1"
+            ),
+            -1,
+        )
+        self.assertEqual(
+            Dpkg.compare_versions("2.7.4+reloaded2-13", "2.7.4+reloaded2-13+deb9u1"), -1
+        )
 
         # greater than
         self.assertEqual(Dpkg.compare_versions("0.0.1-0", "0:0.0.0"), 1)
@@ -200,6 +210,16 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_versions("0.0.9", "0.0.1"), 1)
         self.assertEqual(Dpkg.compare_versions("0.9.0", "0.1.0"), 1)
         self.assertEqual(Dpkg.compare_versions("9.0.0", "1.0.0"), 1)
+        self.assertEqual(Dpkg.compare_versions("1.2.3-1", "1.2.3-1~deb7u1"), 1)
+        self.assertEqual(
+            Dpkg.compare_versions(
+                "2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13ubuntu1"
+            ),
+            1,
+        )
+        self.assertEqual(
+            Dpkg.compare_versions("2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13"), 1
+        )
 
         # unicode me harder
         self.assertEqual(Dpkg.compare_versions(u"2:0.0.44-1", u"2:0.0.44-nobin"), -1)

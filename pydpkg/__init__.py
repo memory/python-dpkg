@@ -421,8 +421,8 @@ class Dpkg:
         """Split a revision string into a list of alternating between strings and
         numbers, padded on either end to always be "str, int, str, int..." and
         always be of even length.  This allows us to trivially implement the
-        comparison algorithm described at
-        http://debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+        comparison algorithm described at section 5.6.12 in:
+        https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
         result = []
         while revision_str:
@@ -479,8 +479,9 @@ class Dpkg:
     @staticmethod
     def compare_revision_strings(rev1, rev2):
         """Compare two debian revision strings as described at
-        https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+        https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
+        # FIXME(memory): this function now fails pylint R0912 too-many-branches
         if rev1 == rev2:
             return 0
         # listify pads results so that we will always be comparing ints to ints
@@ -491,6 +492,9 @@ class Dpkg:
             return 0
         try:
             for i, item in enumerate(list1):
+                # explicitly raise IndexError if we've fallen off the edge of list2
+                if i >= len(list2):
+                    raise IndexError
                 # just in case
                 if not isinstance(item, list2[i].__class__):
                     raise DpkgVersionError(
@@ -511,8 +515,14 @@ class Dpkg:
                     return Dpkg.dstringcmp(item, list2[i])
         except IndexError:
             # rev1 is longer than rev2 but otherwise equal, hence greater
+            # ...except for goddamn tildes
+            if list1[len(list2)][0][0] == "~":
+                return -1
             return 1
         # rev1 is shorter than rev2 but otherwise equal, hence lesser
+        # ...except for goddamn tildes
+        if list2[len(list1)][0][0] == "~":
+            return 1
         return -1
 
     @staticmethod
