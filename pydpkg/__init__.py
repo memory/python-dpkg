@@ -481,7 +481,7 @@ class Dpkg:
         """Compare two debian revision strings as described at
         https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
-        # FIXME(memory): this function now fails pylint R0912 too-many-branches
+        # TODO(memory): this function now fails pylint R0912 too-many-branches
         if rev1 == rev2:
             return 0
         # listify pads results so that we will always be comparing ints to ints

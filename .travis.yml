@@ -13,5 +13,5 @@ install:
   - "pip install -e .[test]"
 script:
   - "py.test tests/"
-  - "pylint -d R0912 pydpkg/"
+  - "pylint -d R0912 -d W0511 pydpkg/"
   - "pep8 --max-line-length=90 --ignore=E203 pydpkg/"
