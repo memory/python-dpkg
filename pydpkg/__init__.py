@@ -1,4 +1,3 @@
-
 """ pydpkg: tools for inspecting dpkg archive files in python
             without any dependency on libapt
 """
@@ -23,7 +22,7 @@ import six
 import pgpy
 from arpy import Archive
 
-REQUIRED_HEADERS = ('package', 'version', 'architecture')
+REQUIRED_HEADERS = ("package", "version", "architecture")
 
 logging.basicConfig()
 
@@ -65,12 +64,12 @@ class DscBadSignatureError(DscError):
 
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
-class Dpkg():
+class Dpkg:
 
     """Class allowing import and manipulation of a debian package file."""
 
     def __init__(self, filename=None, ignore_missing=False, logger=None):
-        """ Constructor for Dpkg object
+        """Constructor for Dpkg object
 
         :param filename: string
         :param ignore_missing: bool
@@ -79,7 +78,7 @@ class Dpkg():
         self.filename = os.path.expanduser(filename)
         self.ignore_missing = ignore_missing
         if not isinstance(self.filename, six.string_types):
-            raise DpkgError('filename argument must be a string')
+            raise DpkgError("filename argument must be a string")
         if not os.path.isfile(self.filename):
             raise DpkgError('filename "%s" does not exist' % filename)
         self._log = logger or logging.getLogger(__name__)
@@ -169,16 +168,16 @@ class Dpkg():
             h_md5 = hashlib.md5()
             h_sha1 = hashlib.sha1()
             h_sha256 = hashlib.sha256()
-            with open(self.filename, 'rb') as dpkg_file:
-                for chunk in iter(lambda: dpkg_file.read(128), b''):
+            with open(self.filename, "rb") as dpkg_file:
+                for chunk in iter(lambda: dpkg_file.read(128), b""):
                     h_md5.update(chunk)
                     h_sha1.update(chunk)
                     h_sha256.update(chunk)
             self._fileinfo = {
-                'md5':      h_md5.hexdigest(),
-                'sha1':     h_sha1.hexdigest(),
-                'sha256':   h_sha256.hexdigest(),
-                'filesize': os.path.getsize(self.filename)
+                "md5": h_md5.hexdigest(),
+                "sha1": h_sha1.hexdigest(),
+                "sha256": h_sha256.hexdigest(),
+                "filesize": os.path.getsize(self.filename),
             }
         return self._fileinfo
 
@@ -188,7 +187,7 @@ class Dpkg():
 
         :returns: string
         """
-        return self.fileinfo['md5']
+        return self.fileinfo["md5"]
 
     @property
     def sha1(self):
@@ -196,7 +195,7 @@ class Dpkg():
 
         :returns: string
         """
-        return self.fileinfo['sha1']
+        return self.fileinfo["sha1"]
 
     @property
     def sha256(self):
@@ -204,7 +203,7 @@ class Dpkg():
 
         :returns: string
         """
-        return self.fileinfo['sha256']
+        return self.fileinfo["sha256"]
 
     @property
     def filesize(self):
@@ -212,7 +211,7 @@ class Dpkg():
 
         :returns: string
         """
-        return self.fileinfo['filesize']
+        return self.fileinfo["filesize"]
 
     @property
     def epoch(self):
@@ -266,10 +265,10 @@ class Dpkg():
 
     def compare_version_with(self, version_str):
         """Compare my version to an arbitrary version"""
-        return Dpkg.compare_versions(self.get_header('version'), version_str)
+        return Dpkg.compare_versions(self.get_header("version"), version_str)
 
     @staticmethod
-    def _force_encoding(obj, encoding='utf-8'):
+    def _force_encoding(obj, encoding="utf-8"):
         """Enforce uniform text encoding"""
         if isinstance(obj, six.string_types):
             if not isinstance(obj, six.text_type):
@@ -279,79 +278,78 @@ class Dpkg():
     def _extract_message(self, ctar):
         # pathname in the tar could be ./control, or just control
         # (there would never be two control files...right?)
-        tar_members = [
-            os.path.basename(x.name) for x in ctar.getmembers()]
-        self._log.debug('got tar members: %s', tar_members)
-        if 'control' not in tar_members:
+        tar_members = [os.path.basename(x.name) for x in ctar.getmembers()]
+        self._log.debug("got tar members: %s", tar_members)
+        if "control" not in tar_members:
             raise DpkgMissingControlFile(
-                'Corrupt dpkg file: no control file in control.tar.gz')
-        control_idx = tar_members.index('control')
-        self._log.debug('got control index: %s', control_idx)
+                "Corrupt dpkg file: no control file in control.tar.gz"
+            )
+        control_idx = tar_members.index("control")
+        self._log.debug("got control index: %s", control_idx)
         # at last!
-        control_file = ctar.extractfile(
-            ctar.getmembers()[control_idx])
-        self._log.debug('got control file: %s', control_file)
+        control_file = ctar.extractfile(ctar.getmembers()[control_idx])
+        self._log.debug("got control file: %s", control_file)
         message_body = control_file.read()
         # py27 lacks email.message_from_bytes, so...
         if isinstance(message_body, bytes):
-            message_body = message_body.decode('utf-8')
+            message_body = message_body.decode("utf-8")
         message = message_from_string(message_body)
-        self._log.debug('got control message: %s', message)
+        self._log.debug("got control message: %s", message)
         return message
 
     def _process_dpkg_file(self, filename):
         dpkg_archive = Archive(filename)
         dpkg_archive.read_all_headers()
-        if b'control.tar.gz' in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b'control.tar.gz']
+        if b"control.tar.gz" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.gz"]
             control_archive_type = "gz"
-        elif b'control.tar.xz' in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b'control.tar.xz']
+        elif b"control.tar.xz" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
             control_archive_type = "xz"
         else:
             raise DpkgMissingControlGzipFile(
-                'Corrupt dpkg file: no control.tar.gz/xz file in ar archive.')
-        self._log.debug('found controlgz: %s', control_archive)
+                "Corrupt dpkg file: no control.tar.gz/xz file in ar archive."
+            )
+        self._log.debug("found controlgz: %s", control_archive)
 
         if control_archive_type == "gz":
             with GzipFile(fileobj=control_archive) as gzf:
-                self._log.debug('opened gzip control archive: %s', gzf)
+                self._log.debug("opened gzip control archive: %s", gzf)
                 with tarfile.open(fileobj=io.BytesIO(gzf.read())) as ctar:
-                    self._log.debug('opened tar file: %s', ctar)
+                    self._log.debug("opened tar file: %s", ctar)
                     message = self._extract_message(ctar)
         else:
             with lzma.open(control_archive) as xzf:
-                self._log.debug('opened xz control archive: %s', xzf)
+                self._log.debug("opened xz control archive: %s", xzf)
                 with tarfile.open(fileobj=io.BytesIO(xzf.read())) as ctar:
-                    self._log.debug('opened tar file: %s', ctar)
+                    self._log.debug("opened tar file: %s", ctar)
                     message = self._extract_message(ctar)
 
         for req in REQUIRED_HEADERS:
             if req not in list(map(str.lower, message.keys())):
                 if self.ignore_missing:
-                    self._log.debug(
-                        'Header "%s" not found in control message', req)
+                    self._log.debug('Header "%s" not found in control message', req)
                     continue
                 raise DpkgMissingRequiredHeaderError(
-                    'Corrupt control section; header: "%s" not found' % req)
-        self._log.debug('all required headers found')
+                    'Corrupt control section; header: "%s" not found' % req
+                )
+        self._log.debug("all required headers found")
 
         for header in message.keys():
-            self._log.debug('coercing header to utf8: %s', header)
-            message.replace_header(
-                header, self._force_encoding(message[header]))
-        self._log.debug('all required headers coerced')
+            self._log.debug("coercing header to utf8: %s", header)
+            message.replace_header(header, self._force_encoding(message[header]))
+        self._log.debug("all required headers coerced")
 
         return message
 
     @staticmethod
     def get_epoch(version_str):
-        """ Parse the epoch out of a package version string.
+        """Parse the epoch out of a package version string.
         Return (epoch, version); epoch is zero if not found."""
         try:
             # there could be more than one colon,
             # but we only care about the first
-            e_index = version_str.index(':')
+            e_index = version_str.index(":")
         except ValueError:
             # no colons means no epoch; that's valid, man
             return 0, version_str
@@ -360,11 +358,11 @@ class Dpkg():
             epoch = int(version_str[0:e_index])
         except ValueError:
             raise DpkgVersionError(
-                'Corrupt dpkg version %s: epochs can only be ints, and '
-                'epochless versions cannot use the colon character.' %
-                version_str)
+                "Corrupt dpkg version %s: epochs can only be ints, and "
+                "epochless versions cannot use the colon character." % version_str
+            )
 
-        return epoch, version_str[e_index + 1:]
+        return epoch, version_str[e_index + 1 :]
 
     @staticmethod
     def get_upstream(version_str):
@@ -372,19 +370,19 @@ class Dpkg():
         revision and a debian revision, return a tuple of both.  If there is no
         debian revision, return 0 as the second tuple element."""
         try:
-            d_index = version_str.rindex('-')
+            d_index = version_str.rindex("-")
         except ValueError:
             # no hyphens means no debian version, also valid.
-            return version_str, '0'
+            return version_str, "0"
 
-        return version_str[0:d_index], version_str[d_index+1:]
+        return version_str[0:d_index], version_str[d_index + 1 :]
 
     @staticmethod
     def split_full_version(version_str):
         """Split a full version string into epoch, upstream version and
         debian revision.
         :param: version_str
-        :returns: tuple """
+        :returns: tuple"""
         epoch, full_ver = Dpkg.get_epoch(version_str)
         upstream_rev, debian_rev = Dpkg.get_upstream(full_ver)
         return epoch, upstream_rev, debian_rev
@@ -397,10 +395,10 @@ class Dpkg():
         for i, char in enumerate(revision_str):
             if char.isdigit():
                 if i == 0:
-                    return '', revision_str
+                    return "", revision_str
                 return revision_str[0:i], revision_str[i:]
         # string is entirely alphas
-        return revision_str, ''
+        return revision_str, ""
 
     @staticmethod
     def get_digits(revision_str):
@@ -408,7 +406,7 @@ class Dpkg():
         may be empty) and the remains."""
         # If the string is empty, return (0,'')
         if not revision_str:
-            return 0, ''
+            return 0, ""
         # get the index of the first non-digit
         for i, char in enumerate(revision_str):
             if not char.isdigit():
@@ -416,15 +414,15 @@ class Dpkg():
                     return 0, revision_str
                 return int(revision_str[0:i]), revision_str[i:]
         # string is entirely digits
-        return int(revision_str), ''
+        return int(revision_str), ""
 
     @staticmethod
     def listify(revision_str):
         """Split a revision string into a list of alternating between strings and
         numbers, padded on either end to always be "str, int, str, int..." and
         always be of even length.  This allows us to trivially implement the
-        comparison algorithm described at
-        http://debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+        comparison algorithm described at section 5.6.12 in:
+        https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
         result = []
         while revision_str:
@@ -452,9 +450,9 @@ class Dpkg():
                     continue
                 # "a tilde sorts before anything, even the end of a part"
                 # (emptyness)
-                if char == '~':
+                if char == "~":
                     return -1
-                if b[i] == '~':
+                if b[i] == "~":
                     return 1
                 # "all the letters sort earlier than all the non-letters"
                 if char.isalpha() and not b[i].isalpha():
@@ -469,20 +467,21 @@ class Dpkg():
         except IndexError:
             # a is longer than b but otherwise equal, hence greater
             # ...except for goddamn tildes
-            if char == '~':
+            if char == "~":
                 return -1
             return 1
         # if we get here, a is shorter than b but otherwise equal, hence lesser
         # ...except for goddamn tildes
-        if b[len(a)] == '~':
+        if b[len(a)] == "~":
             return 1
         return -1
 
     @staticmethod
     def compare_revision_strings(rev1, rev2):
         """Compare two debian revision strings as described at
-        https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+        https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
+        # TODO(memory): this function now fails pylint R0912 too-many-branches
         if rev1 == rev2:
             return 0
         # listify pads results so that we will always be comparing ints to ints
@@ -493,11 +492,15 @@ class Dpkg():
             return 0
         try:
             for i, item in enumerate(list1):
+                # explicitly raise IndexError if we've fallen off the edge of list2
+                if i >= len(list2):
+                    raise IndexError
                 # just in case
                 if not isinstance(item, list2[i].__class__):
                     raise DpkgVersionError(
-                        'Cannot compare %s to %s, something has gone horribly '
-                        'awry.' % (item, list2[i]))
+                        "Cannot compare %s to %s, something has gone horribly "
+                        "awry." % (item, list2[i])
+                    )
                 # if the items are equal, next
                 if item == list2[i]:
                     continue
@@ -512,8 +515,14 @@ class Dpkg():
                     return Dpkg.dstringcmp(item, list2[i])
         except IndexError:
             # rev1 is longer than rev2 but otherwise equal, hence greater
+            # ...except for goddamn tildes
+            if list1[len(list2)][0][0] == "~":
+                return -1
             return 1
         # rev1 is shorter than rev2 but otherwise equal, hence lesser
+        # ...except for goddamn tildes
+        if list2[len(list1)][0][0] == "~":
+            return 1
         return -1
 
     @staticmethod
@@ -564,9 +573,10 @@ class Dpkg():
         return cmp_to_key(Dpkg.dstringcmp)(x)
 
 
-class Dsc():
+class Dsc:
     """Class allowing import and manipulation of a debian source
-       description (dsc) file."""
+    description (dsc) file."""
+
     def __init__(self, filename=None, logger=None):
         self.filename = os.path.expanduser(filename)
         self._dirname = os.path.dirname(self.filename)
@@ -594,11 +604,11 @@ class Dsc():
         :returns: string
         :raises: AttributeError
         """
-        self._log.debug('grabbing attr: %s', attr)
+        self._log.debug("grabbing attr: %s", attr)
         if attr in self.__dict__:
             return self.__dict__[attr]
         # handle attributes with dashes :-(
-        munged = attr.replace('_', '-')
+        munged = attr.replace("_", "-")
         # beware: email.Message[nonexistent] returns None not KeyError
         if munged in self.message:
             return self.message[munged]
@@ -612,7 +622,7 @@ class Dsc():
         :returns: string
         :raises: KeyError
         """
-        self._log.debug('grabbing item: %s', item)
+        self._log.debug("grabbing item: %s", item)
         try:
             return getattr(self, item)
         except AttributeError:
@@ -631,7 +641,7 @@ class Dsc():
     @property
     def message(self):
         """Return an email.Message object containing the parsed dsc file"""
-        self._log.debug('accessing message property')
+        self._log.debug("accessing message property")
         if self._message is None:
             self._message = self._process_dsc_file()
         return self._message
@@ -713,8 +723,7 @@ class Dsc():
     def validate(self):
         """Raise exceptions if files are missing or checksums are bad."""
         if not self.all_files_present:
-            raise DscMissingFileError(
-                [x[0] for x in self._source_files if not x[2]])
+            raise DscMissingFileError([x[0] for x in self._source_files if not x[2]])
         if not self.all_checksums_correct:
             raise DscBadChecksumsError(self.corrected_checksums)
 
@@ -722,23 +731,22 @@ class Dsc():
         """Walk through the dsc message looking for any keys in the
         format 'Checksum-hashtype'.  Return a nested dictionary in
         the form {hashtype: {filename: {digest}}}"""
-        self._log.debug('process_checksums()')
+        self._log.debug("process_checksums()")
         sums = {}
         for key in self.message.keys():
-            if key.lower().startswith('checksums'):
-                hashtype = key.split('-')[1].lower()
+            if key.lower().startswith("checksums"):
+                hashtype = key.split("-")[1].lower()
             # grrrrrr debian :( :( :(
-            elif key.lower() == 'files':
-                hashtype = 'md5'
+            elif key.lower() == "files":
+                hashtype = "md5"
             else:
                 continue
             sums[hashtype] = {}
             source = self.message[key]
-            for line in source.split('\n'):
+            for line in source.split("\n"):
                 if line:  # grrr py3--
-                    digest, _, filename = line.strip().split(' ')
-                    pathname = os.path.abspath(
-                        os.path.join(self._dirname, filename))
+                    digest, _, filename = line.strip().split(" ")
+                    pathname = os.path.abspath(os.path.join(self._dirname, filename))
                     sums[hashtype][pathname] = digest
         return sums
 
@@ -746,37 +754,35 @@ class Dsc():
         """Ugh: the dsc message body may not include a Files or
         Checksums-foo entry for _itself_, which makes for hilarious
         misadventures up the chain.  So, pfeh, we add it."""
-        self._log.debug('internalize_message()')
+        self._log.debug("internalize_message()")
         base = os.path.basename(self.filename)
         size = os.path.getsize(self.filename)
         for key, source in msg.items():
-            self._log.debug('processing key: %s', key)
-            if key.lower().startswith('checksums'):
-                hashtype = key.split('-')[1].lower()
-            elif key.lower() == 'files':
-                hashtype = 'md5'
+            self._log.debug("processing key: %s", key)
+            if key.lower().startswith("checksums"):
+                hashtype = key.split("-")[1].lower()
+            elif key.lower() == "files":
+                hashtype = "md5"
             else:
                 continue
             found = []
-            for line in source.split('\n'):
+            for line in source.split("\n"):
                 if line:  # grrr
-                    found.append(line.strip().split(' '))
+                    found.append(line.strip().split(" "))
             files = [x[2] for x in found]
             if base not in files:
-                self._log.debug('dsc file not found in %s: %s', key, base)
-                self._log.debug('getting hasher for %s', hashtype)
+                self._log.debug("dsc file not found in %s: %s", key, base)
+                self._log.debug("getting hasher for %s", hashtype)
                 hasher = getattr(hashlib, hashtype)()
-                self._log.debug('hashing file')
-                with open(self.filename, 'rb') as fileobj:
+                self._log.debug("hashing file")
+                with open(self.filename, "rb") as fileobj:
                     # pylint: disable=cell-var-from-loop
-                    for chunk in iter(lambda: fileobj.read(1024), b''):
+                    for chunk in iter(lambda: fileobj.read(1024), b""):
                         hasher.update(chunk)
-                    self._log.debug('completed hashing file')
-                self._log.debug('got %s digest: %s',
-                                hashtype, hasher.hexdigest())
-                newline = '\n {0} {1} {2}'.format(
-                    hasher.hexdigest(), size, base)
-                self._log.debug('new line: %s', newline)
+                    self._log.debug("completed hashing file")
+                self._log.debug("got %s digest: %s", hashtype, hasher.hexdigest())
+                newline = "\n {0} {1} {2}".format(hasher.hexdigest(), size, base)
+                self._log.debug("new line: %s", newline)
                 msg.replace_header(key, msg[key] + newline)
         return msg
 
@@ -784,28 +790,29 @@ class Dsc():
         """Extract the dsc message from a file: parse the dsc body
         and return an email.Message object.  Attempt to extract the
         RFC822 message from an OpenPGP message if necessary."""
-        self._log.debug('process_dsc_file()')
-        if not self.filename.endswith('.dsc'):
+        self._log.debug("process_dsc_file()")
+        if not self.filename.endswith(".dsc"):
             self._log.debug(
-                'File %s does not appear to be a dsc file; pressing '
-                'on but we may experience some turbulence and possibly '
-                'explode.', self.filename)
+                "File %s does not appear to be a dsc file; pressing "
+                "on but we may experience some turbulence and possibly "
+                "explode.",
+                self.filename,
+            )
         try:
             self._pgp_message = pgpy.PGPMessage.from_file(self.filename)
-            self._log.debug('Found pgp signed message')
+            self._log.debug("Found pgp signed message")
             msg = message_from_string(self._pgp_message.message)
         except TypeError as ex:
             self._log.exception(ex)
             self._log.fatal(
-                'dsc file %s has a corrupt signature: %s', self.filename, ex)
+                "dsc file %s has a corrupt signature: %s", self.filename, ex
+            )
             raise DscBadSignatureError
         except IOError as ex:
-            self._log.fatal('Could not read dsc file "%s": %s',
-                            self.filename, ex)
+            self._log.fatal('Could not read dsc file "%s": %s', self.filename, ex)
             raise
         except (ValueError, pgpy.errors.PGPError) as ex:
-            self._log.warning('dsc file %s is not signed: %s',
-                              self.filename, ex)
+            self._log.warning("dsc file %s is not signed: %s", self.filename, ex)
             with open(self.filename) as fileobj:
                 msg = message_from_file(fileobj)
         msg = self._internalize_message(msg)
@@ -822,21 +829,20 @@ class Dsc():
         Also extract the file size from the message lines and fill
         out the _files dictionary.
         """
-        self._log.debug('process_source_files()')
+        self._log.debug("process_source_files()")
         filenames = []
         try:
-            files = self.message['Files']
+            files = self.message["Files"]
         except KeyError:
-            self._log.fatal('DSC file "%s" does not have a Files section',
-                            self.filename)
+            self._log.fatal(
+                'DSC file "%s" does not have a Files section', self.filename
+            )
             raise
-        for line in files.split('\n'):
+        for line in files.split("\n"):
             if line:
-                _, size, filename = line.strip().split(' ')
-                pathname = os.path.abspath(
-                    os.path.join(self._dirname, filename))
-                filenames.append(
-                    (pathname, int(size), os.path.isfile(pathname)))
+                _, size, filename = line.strip().split(" ")
+                pathname = os.path.abspath(os.path.join(self._dirname, filename))
+                filenames.append((pathname, int(size), os.path.isfile(pathname)))
         return filenames
 
     def _validate_checksums(self):
@@ -844,14 +850,14 @@ class Dsc():
         dsc file.  Check each in turn.  If any checksum is invalid,
         append the correct checksum to a similarly structured dict
         and return them all at the end."""
-        self._log.debug('validate_checksums()')
+        self._log.debug("validate_checksums()")
         bad_hashes = defaultdict(lambda: defaultdict(None))
         for hashtype, filenames in six.iteritems(self.checksums):
             for filename, digest in six.iteritems(filenames):
                 hasher = getattr(hashlib, hashtype)()
-                with open(filename, 'rb') as fileobj:
+                with open(filename, "rb") as fileobj:
                     # pylint: disable=cell-var-from-loop
-                    for chunk in iter(lambda: fileobj.read(128), b''):
+                    for chunk in iter(lambda: fileobj.read(128), b""):
                         hasher.update(chunk)
                 if hasher.hexdigest() != digest:
                     bad_hashes[hashtype][filename] = hasher.hexdigest()

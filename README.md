@@ -8,8 +8,8 @@ This library can be used to:
    on platforms that generally lack a native implementation of dpkg
 
 2. compare dpkg version strings, using a pure Python implementation of
-   the algorithm described at
-   https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+   the algorithm described in section 5.6.12 of the debian-policy manual:
+   https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
 
 3. Parse debian source description (dsc) files, inspect their contents
    and verify that their source files are present and checksums are
