@@ -19,7 +19,7 @@ setup(
     download_url="https://github.com/memory/python-dpkg/tarball/%s" % __VERSION__,
     keywords=["apt", "debian", "dpkg", "packaging"],
     setup_requires=["wheel"],
-    install_requires=["arpy==1.1.1", "six<2.0.0", "PGPy==0.4.1"],
+    install_requires=["arpy==1.1.1", "six<2.0.0", "PGPy==0.5.4"],
     extras_require={
         "test": ["pep8==1.7.0", "pytest==3.1.1", "pylint==2.3.1"],
         "publish": ["twine"],
