@@ -9,3 +9,4 @@ MANIFEST
 build/
 dist/
 .eggs
+.python-version

@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "pydpkg"
+version = "1.6.0"
+description = "A python library for parsing debian package control headers and version strings"
+authors = ["Nathan J. Mehl <pypi@memory.blank.org>"]
+homepage = "https://github.com/memory/python-dpkg"
+repository = "https://github.com/memory/python-dpkg.git"
+keywords = ["apt", "debian", "dpkg", "packaging"]
+license = "Apache-2.0"
+packages = [
+  { include = "pydpkg" },
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: System :: Archiving :: Packaging",
+]
+readme = "README.md"
+
+[tool.poetry.scripts]
+dpkg-inspect = "pydpkg.dpkg_inspect:main"
+
+[tool.poetry.dependencies]
+python = "^3.6.2"
+arpy = "^2.2.0"
+six = "^1.16.0"
+PGPy = "0.5.4"
+
+[tool.poetry.dev-dependencies]
+black = "^21.11b1"
+pytest = "^6.2.5"
+pylint = "^2.12.2"
+# FIXME: revert to upstream when https://github.com/flakehell/flakehell/pull/23 merges
+flakehell = {git = "https://github.com/mcarans/flakehell", rev = "master"}
+pycodestyle = "^2.8.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

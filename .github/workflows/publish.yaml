@@ -1,0 +1,48 @@
+name: release-to-pypi
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade poetry
+          poetry install
+        env:
+          POETRY_VIRTUALENVS_CREATE: false
+      - name: Check formatting
+        run: poetry run black --check .
+      - name: Lint with flakehell
+        run: poetry run flakehell lint pydpkg test
+      - name: Lint with pylint
+        run: poetry run pylint -d R0912 -d W0511 pydpkg/
+      - name: Lint with pycodestyle (aka pep8)
+        run: poetry run pycodestyle --max-line-length=120 --ignore=E203 pydpkg/
+      - name: Test with pytest
+        run: poetry run pytest tests/
+      - name: build dists
+        run: poetry build
+      - name: push to test repo
+        run: |
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry publish -r testpypi
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      - name: push to real repo
+        run: |
+          poetry publish
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
