@@ -39,6 +39,19 @@ the [pip](https://packaging.python.org/installing/) tool:
       Installing collected packages: pydpkg
       Successfully installed pydpkg-1.1
 
+## Developing
+
+python-dpkg uses [Poetry](https://python-poetry.org/) to manage its dependencies.
+
+The [Makefile](makefile) will attempt to set up a reasonable build/test
+environment on both macOS/Darwin and more traditional unixes (linux, freebsd,
+etc), but relies on the existence of [pyenv](https://github.com/pyenv/pyenv),
+[pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) everywhere and
+[Homebrew](https://brew.sh) on macOS.  You don't _need_ to use the workflow
+that the makefile enforces (modern versions of [pip](https://pypi.org/project/pip/)
+will happily digest `pyproject.toml` files and you can run the test commands
+manually) but please ensure all tests pass before submitting PRs.
+
 ## Usage
 
 ### Binary Packages
@@ -127,9 +140,9 @@ the [pip](https://packaging.python.org/installing/) tool:
     >>> sorted(['0:1.0-test1', '1:0.0-test0', '0:1.0-test2'] , key=Dpkg.compare_versions_key)
     ['0:1.0-test1', '0:1.0-test2', '1:0.0-test0']
 
-#### Use the `dpkg-inspect.py` script to inspect packages
+#### Use the `dpkg-inspect` script to inspect packages
 
-    $ dpkg-inspect.py ~/testdeb*deb
+    $ dpkg-inspect ~/testdeb*deb
     Filename: /Home/n/testdeb_1:0.0.0-test_all.deb
     Size:     910
     MD5:      149e61536a9fe36374732ec95cf7945d

@@ -4,8 +4,8 @@ import os
 import unittest
 from email.message import Message
 
-from pydpkg import Dpkg, DpkgVersionError
-
+from pydpkg.dpkg import Dpkg
+from pydpkg.exceptions import DpkgVersionError
 
 TEST_DPKG_GZ_FILE = "testdeb_1:0.0.0-test_all.deb"
 TEST_DPKG_XZ_FILE = "sample_package_xz.deb"
