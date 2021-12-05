@@ -43,7 +43,7 @@ the [pip](https://packaging.python.org/installing/) tool:
 
 python-dpkg uses [Poetry](https://python-poetry.org/) to manage its dependencies.
 
-The [Makefile](makefile) will attempt to set up a reasonable build/test
+The [Makefile](Makefile) will attempt to set up a reasonable build/test
 environment on both macOS/Darwin and more traditional unixes (linux, freebsd,
 etc), but relies on the existence of [pyenv](https://github.com/pyenv/pyenv),
 [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) everywhere and
