@@ -8,10 +8,12 @@ PYMAJOR := 3
 PYREV := 10
 PYPATCH := 0
 PYVERSION := ${PYMAJOR}.${PYREV}.${PYPATCH}
-PYENV := ~/.pyenv/versions/${PYVERSION}
+PYENV := ${HOME}/.pyenv/versions/${PYVERSION}
 VENV_NAME := ${NAME}-${PYVERSION}
 VENV := ${PYENV}/envs/${VENV_NAME}
 EGGLINK := ${VENV}/lib/python${PYMAJOR}.${PYREV}/site-packages/${NAME}.egg-link
+export VIRTUAL_ENV := ${VENV}
+export PYENV_VERSION := ${VENV_NAME}
 
 # delberately smash this so we keep arm64-homebrew (/opt/homebrew) out of our field of view
 export PATH = ${VENV}/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin
@@ -20,42 +22,46 @@ uname_m := $(shell uname -m)
 uname_s := $(shell uname -s)
 
 ifeq ($(uname_s),Darwin)
+  PYENV_BIN := /usr/local/bin/pyenv
   BREW_SSL := /usr/local/opt/openssl@1.1
   BREW_READLINE := /usr/local/opt/readline
   export LDFLAGS = -L${BREW_SSL}/lib -L${BREW_READLINE}/lib
   export CFLAGS = -I${BREW_SSL}/include -I${BREW_READLINE}/include
   export CPPFLAGS = -I${BREW_SSL}/include -I${BREW_READLINE}/include
-  ${BREW_READLINE}:
-	${ARCH_PREFIX} brew install readline
-  ${BREW_SSL}:
-	${ARCH_PREFIX} brew install openssl@1.1
 
   ifeq ($(uname_m),arm64)
     ARCH_PREFIX := arch -x86_64
   endif
+
+  ${BREW_READLINE}:
+	${ARCH_PREFIX} brew install readline
+
+  ${BREW_SSL}:
+	${ARCH_PREFIX} brew install openssl@1.1
 else
+  PYENV_BIN := ${HOME}/.pyenv/bin/pyenv
   ${BREW_READLINE}: .PHONY
   ${BREW_SSL}: .PHONY
 endif
 
-
-${PYENV}: ${BREW_SSL} ${BREW_READLINE}
+${PYENV}: ${BREW_SSL} ${BREW_READLINE} ${PYENV_BIN}
 	${ARCH_PREFIX} pyenv install ${PYVERSION}
 
 ${VENV}: ${PYENV}
-	${ARCH_PREFIX} pyenv virtualenv ${PYVERSION} ${VENV_NAME}
-	${VENV}/bin/python -m pip install -U pip setuptools wheel
-	${VENV}/bin/python -m pip install -U poetry
+	${ARCH_PREFIX} ${PYENV_BIN} virtualenv ${PYVERSION} ${VENV_NAME}
+	${ARCH_PREFIX} python -m pip install -U pip setuptools wheel
+	${ARCH_PREFIX} python -m pip install -U poetry
+	${ARCH_PREFIX} poetry config virtualenvs.create false --local
+	${ARCH_PREFIX} poetry config virtualenvs.in-project false --local
 
 .python-version: ${VENV}
 	echo ${VENV_NAME} >.python-version
 
 poetry.lock:
-	PYENV_VERSION=${NAME} VIRTUAL_ENV=${VENV} ${VENV}/bin/poetry lock
+	poetry lock
 
 ${EGGLINK}: poetry.lock
-	PYENV_VERSION=${NAME} VIRTUAL_ENV=${VENV} ${VENV}/bin/poetry install
-	# an update-install might not necessarily update this
+	poetry install
 	touch ${EGGLINK}
 
 setup: .python-version ${EGGLINK}
@@ -69,8 +75,8 @@ nuke:
 	pyenv uninstall -f ${VENV_NAME}
 
 update: pyproject.toml
-	PYENV_VERSION=${NAME} VIRTUAL_ENV=${VENV} ${VENV}/bin/poetry install
-	PYENV_VERSION=${NAME} VIRTUAL_ENV=${VENV} ${VENV}/bin/poetry update
+	poetry install
+	poetry update
 
 format: setup
 	poetry run isort . && poetry run black .
@@ -99,7 +105,7 @@ flakehell: setup
 
 pycodestyle: setup
 	@echo "Linting codestyle with pycodestyle (formerly pep8)"
-	# ignore E203 because pep8 and black disagree about whitespace before ':'
+	@# ignore E203 because pep8 and black disagree about whitespace before ':'
 	poetry run pycodestyle --max-line-length=120 --ignore=E203 ${NAME}
 
 install: setup
