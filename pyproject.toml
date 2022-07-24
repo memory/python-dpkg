@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydpkg"
-version = "1.6.0"
+version = "1.7.0"
 description = "A python library for parsing debian package control headers and version strings"
 authors = ["Nathan J. Mehl <pypi@memory.blank.org>"]
 homepage = "https://github.com/memory/python-dpkg"
@@ -31,6 +31,7 @@ python = "^3.6.2"
 arpy = "^2.2.0"
 six = "^1.16.0"
 PGPy = "0.5.4"
+zstandard = "^0.18.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.11b1"
