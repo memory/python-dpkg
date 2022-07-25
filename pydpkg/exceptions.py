@@ -14,11 +14,11 @@ class DpkgVersionError(DpkgError):
 
 
 class DpkgMissingControlFile(DpkgError):
-    """No control file found in control.tar.gz/xz"""
+    """No control file found in control.tar.gz/xz/zst"""
 
 
 class DpkgMissingControlGzipFile(DpkgError):
-    """No control.tar.gz/xz file found in dpkg file"""
+    """No control.tar.gz/xz/zst file found in dpkg file"""
 
 
 class DpkgMissingRequiredHeaderError(DpkgError):

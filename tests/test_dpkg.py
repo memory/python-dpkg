@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
 import os
+import pytest
 import unittest
 from email.message import Message
 
 from pydpkg.dpkg import Dpkg
-from pydpkg.exceptions import DpkgVersionError
+from pydpkg.exceptions import DpkgVersionError, DpkgMissingControlGzipFile
 
 TEST_DPKG_GZ_FILE = "testdeb_1:0.0.0-test_all.deb"
 TEST_DPKG_XZ_FILE = "sample_package_xz.deb"
+TEST_DPKG_ZST_FILE = "sample_package_zst.deb"
+TEST_DPKG_BAD_FILE = "sample_package_badcontrol.deb"
 
 
 class DpkgGzTest(unittest.TestCase):
@@ -65,6 +68,41 @@ class DpkgXzTest(unittest.TestCase):
 
     def test_message(self):
         self.assertIsInstance(self.dpkg.message, type(Message()))
+
+
+class DpkgZstTest(unittest.TestCase):
+    def setUp(self):
+        dpkgfile = os.path.join(os.path.dirname(__file__), TEST_DPKG_ZST_FILE)
+        self.dpkg = Dpkg(dpkgfile)
+
+    def test_get_versions(self):
+        self.assertEqual(self.dpkg.epoch, 0)
+        self.assertEqual(self.dpkg.upstream_version, "0.0.1")
+        self.assertEqual(self.dpkg.debian_revision, "0")
+
+    def test_get_message_headers(self):
+        self.assertEqual(self.dpkg.package, "samplepackage.test")
+        self.assertEqual(self.dpkg.PACKAGE, "samplepackage.test")
+        self.assertEqual(self.dpkg["package"], "samplepackage.test")
+        self.assertEqual(self.dpkg["PACKAGE"], "samplepackage.test")
+        self.assertEqual(self.dpkg.get("package"), "samplepackage.test")
+        self.assertEqual(self.dpkg.get("PACKAGE"), "samplepackage.test")
+        self.assertEqual(self.dpkg.get("nonexistent"), None)
+        self.assertEqual(self.dpkg.get("nonexistent", "foo"), "foo")
+
+    def test_missing_header(self):
+        self.assertRaises(KeyError, self.dpkg.__getitem__, "xyzzy")
+        self.assertRaises(AttributeError, self.dpkg.__getattr__, "xyzzy")
+
+    def test_message(self):
+        self.assertIsInstance(self.dpkg.message, type(Message()))
+
+
+class DpkgBadTest(unittest.TestCase):
+    def test_bad_control(self):
+        with pytest.raises(DpkgMissingControlGzipFile):
+            dpkgfile = os.path.join(os.path.dirname(__file__), TEST_DPKG_BAD_FILE)
+            Dpkg(dpkgfile).message
 
 
 class DpkgVersionsTest(unittest.TestCase):
@@ -222,15 +260,17 @@ class DpkgVersionsTest(unittest.TestCase):
         )
 
         # unicode me harder
-        self.assertEqual(Dpkg.compare_versions(u"2:0.0.44-1", u"2:0.0.44-nobin"), -1)
-        self.assertEqual(Dpkg.compare_versions(u"2:0.0.44-nobin", u"2:0.0.44-1"), 1)
-        self.assertEqual(Dpkg.compare_versions(u"2:0.0.44-1", u"2:0.0.44-1"), 0)
+        self.assertEqual(Dpkg.compare_versions("2:0.0.44-1", "2:0.0.44-nobin"), -1)
+        self.assertEqual(Dpkg.compare_versions("2:0.0.44-nobin", "2:0.0.44-1"), 1)
+        self.assertEqual(Dpkg.compare_versions("2:0.0.44-1", "2:0.0.44-1"), 0)
 
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(DpkgGzTest)
     unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(DpkgXzTest)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(DpkgZstTest)
     unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(DpkgVersionsTest)
     unittest.TextTestRunner(verbosity=2).run(suite)

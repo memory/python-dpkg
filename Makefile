@@ -45,7 +45,7 @@ else
 endif
 
 ${PYENV}: ${BREW_SSL} ${BREW_READLINE} ${PYENV_BIN}
-	${ARCH_PREFIX} pyenv install ${PYVERSION}
+	${ARCH_PREFIX} pyenv install -s ${PYVERSION}
 
 ${VENV}: ${PYENV}
 	${ARCH_PREFIX} ${PYENV_BIN} virtualenv ${PYVERSION} ${VENV_NAME}

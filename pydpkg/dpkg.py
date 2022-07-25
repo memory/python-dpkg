@@ -13,6 +13,7 @@ from gzip import GzipFile
 
 # pypi imports
 import six
+import zstandard
 from arpy import Archive
 
 # local imports
@@ -255,9 +256,12 @@ class Dpkg(_Dbase):
         elif b"control.tar.xz" in dpkg_archive.archived_files:
             control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
             control_archive_type = "xz"
+        elif b"control.tar.zst" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
+            control_archive_type = "zst"
         else:
             raise DpkgMissingControlGzipFile(
-                "Corrupt dpkg file: no control.tar.gz/xz file in ar archive."
+                "Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive."
             )
         self._log.debug("found controlgz: %s", control_archive)
 
@@ -267,10 +271,17 @@ class Dpkg(_Dbase):
                 with tarfile.open(fileobj=io.BytesIO(gzf.read())) as ctar:
                     self._log.debug("opened tar file: %s", ctar)
                     message = self._extract_message(ctar)
-        else:
+        elif control_archive_type == "xz":
             with lzma.open(control_archive) as xzf:
                 self._log.debug("opened xz control archive: %s", xzf)
                 with tarfile.open(fileobj=io.BytesIO(xzf.read())) as ctar:
+                    self._log.debug("opened tar file: %s", ctar)
+                    message = self._extract_message(ctar)
+        else:
+            zst = zstandard.ZstdDecompressor()
+            with zst.stream_reader(control_archive) as reader:
+                self._log.debug("opened zst control archive: %s", reader)
+                with tarfile.open(fileobj=io.BytesIO(reader.read())) as ctar:
                     self._log.debug("opened tar file: %s", ctar)
                     message = self._extract_message(ctar)
 
