@@ -6,11 +6,13 @@ SHELL = /bin/bash
 NAME := pydpkg
 PYMAJOR := 3
 PYREV := 10
-PYPATCH := 0
+PYPATCH := 7
 PYVERSION := ${PYMAJOR}.${PYREV}.${PYPATCH}
 PYENV := ${HOME}/.pyenv/versions/${PYVERSION}
 VENV_NAME := ${NAME}-${PYVERSION}
 VENV := ${PYENV}/envs/${VENV_NAME}
+PYTHON_BIN := ${VENV}/bin/python
+POETRY_BIN := ${VENV}/bin/poetry
 EGGLINK := ${VENV}/lib/python${PYMAJOR}.${PYREV}/site-packages/${NAME}.egg-link
 export VIRTUAL_ENV := ${VENV}
 export PYENV_VERSION := ${VENV_NAME}
@@ -45,23 +47,23 @@ else
 endif
 
 ${PYENV}: ${BREW_SSL} ${BREW_READLINE} ${PYENV_BIN}
-	${ARCH_PREFIX} pyenv install -s ${PYVERSION}
+	${ARCH_PREFIX} ${PYENV_BIN} install -s ${PYVERSION}
 
 ${VENV}: ${PYENV}
 	${ARCH_PREFIX} ${PYENV_BIN} virtualenv ${PYVERSION} ${VENV_NAME}
-	${ARCH_PREFIX} python -m pip install -U pip setuptools wheel
-	${ARCH_PREFIX} python -m pip install -U poetry
-	${ARCH_PREFIX} poetry config virtualenvs.create false --local
-	${ARCH_PREFIX} poetry config virtualenvs.in-project false --local
+	${ARCH_PREFIX} ${PYTHON_BIN} -m pip install -U pip setuptools wheel
+	${ARCH_PREFIX} ${PYTHON_BIN} -m pip install -U poetry
+	${ARCH_PREFIX} ${POETRY_BIN} config virtualenvs.create false --local
+	${ARCH_PREFIX} ${POETRY_BIN} config virtualenvs.in-project false --local
 
 .python-version: ${VENV}
-	echo ${VENV_NAME} >.python-version
+	echo ${PYVERSION}/envs/${VENV_NAME} >.python-version
 
 poetry.lock:
-	poetry lock
+	${ARCH_PREFIX} ${POETRY_BIN} lock
 
 ${EGGLINK}: poetry.lock
-	poetry install
+	${ARCH_PREFIX} ${POETRY_BIN} install
 	touch ${EGGLINK}
 
 setup: .python-version ${EGGLINK}
@@ -72,41 +74,42 @@ clean:
 nuke:
 	git clean -fdx -e '*.ipynb'
 	rm -f .python-version
-	pyenv uninstall -f ${VENV_NAME}
+	${ARCH_PREFIX} ${PYENV_BIN} uninstall -f ${PYVERSION}/envs/${VENV_NAME}
 
 update: pyproject.toml
-	poetry install
-	poetry update
+	${ARCH_PREFIX} ${POETRY_BIN} lock
+	${ARCH_PREFIX} ${POETRY_BIN} install
+	${ARCH_PREFIX} ${POETRY_BIN} update
 
 format: setup
-	poetry run isort . && poetry run black .
+	${ARCH_PREFIX} ${POETRY_BIN} run isort . && poetry run black .
 
 format-check: setup
-	poetry run isort --check . && poetry run black --check .
+	${ARCH_PREFIX} ${POETRY_BIN} run isort --check . && poetry run black --check .
 
-test: black pylint flakehell pycodestyle pytest
+test: black pylint flakeheaven pycodestyle pytest
 	@echo "Running all tests"
 
 pytest: setup
 	@echo "Running unit tests"
-	poetry run pytest -p no:warnings tests
+	${ARCH_PREFIX} ${POETRY_BIN} run pytest -p no:warnings tests
 
 black: setup
 	@echo "Checking code formatting and imports..."
-	poetry run black --check .
+	${ARCH_PREFIX} ${POETRY_BIN} run black --check .
 
 pylint: setup
 	@echo "Linting code style with pylint..."
-	poetry run pylint -d R0912 -d W0511 ${NAME}
+	${ARCH_PREFIX} ${POETRY_BIN} run pylint -d R0912 -d W0511 ${NAME}
 
-flakehell: setup
-	@echo "Linting code style with flakehell..."
-	poetry run flakehell lint ${NAME} test
+flakeheaven: setup
+	@echo "Linting code style with flakeheaven..."
+	${ARCH_PREFIX} ${POETRY_BIN} run flakeheaven lint ${NAME} test
 
 pycodestyle: setup
 	@echo "Linting codestyle with pycodestyle (formerly pep8)"
 	@# ignore E203 because pep8 and black disagree about whitespace before ':'
-	poetry run pycodestyle --max-line-length=120 --ignore=E203 ${NAME}
+	${ARCH_PREFIX} ${POETRY_BIN} run pycodestyle --max-line-length=120 --ignore=E203 ${NAME}
 
 install: setup
 

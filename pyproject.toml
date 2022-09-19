@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydpkg"
-version = "1.7.0"
+version = "1.8.0"
 description = "A python library for parsing debian package control headers and version strings"
 authors = ["Nathan J. Mehl <pypi@memory.blank.org>"]
 homepage = "https://github.com/memory/python-dpkg"
@@ -27,20 +27,29 @@ readme = "README.md"
 dpkg-inspect = "pydpkg.dpkg_inspect:main"
 
 [tool.poetry.dependencies]
-python = "^3.6.2"
+python = ">=3.7,<4.0"
 arpy = "^2.2.0"
 six = "^1.16.0"
 PGPy = "0.5.4"
 zstandard = "^0.18.0"
+# https://github.com/SecurityInnovation/PGPy/issues/402
+cryptography = "^37.0.4"
 
 [tool.poetry.dev-dependencies]
-black = "^21.11b1"
+black = "^22.8.0"
 pytest = "^6.2.5"
 pylint = "^2.12.2"
-# FIXME: revert to upstream when https://github.com/flakehell/flakehell/pull/23 merges
-flakehell = {git = "https://github.com/mcarans/flakehell", rev = "master"}
+flakeheaven = "^3.0.0"
 pycodestyle = "^2.8.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.flakeheaven.plugins]
+pycodestyle = [
+    "+*",
+    "-E203", # whitespace before ‘:’ (incompatible with Black)
+    "-E501", # line too long (incompatible with Black)
+    "-W503", # line break before binary operator (incompatible with Black)
+]
