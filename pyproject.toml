@@ -33,7 +33,7 @@ six = "^1.16.0"
 PGPy = "0.5.4"
 zstandard = "^0.18.0"
 # https://github.com/SecurityInnovation/PGPy/issues/402
-cryptography = "^37.0.4"
+cryptography = ">=37.0.4,<39.0.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
