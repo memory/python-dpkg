@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/TheClimateCorporation/python-dpkg.svg?branch=master)](https://travis-ci.org/TheClimateCorporation/python-dpkg)
-
 # python-dpkg
 
 This library can be used to:
@@ -23,10 +21,10 @@ Currently only tested on CPython 3.x, but at least in theory should run
 on any python distribution that can install the [arpy](https://pypi.python.org/pypi/arpy/)
 library.
 
-(Note: python 2.7 compatibility was removed in version 1.4.0.  We are
-keeping a 1.3 release branch alive and are trying to make a good faith
-effort to backport fixes there, but it's strictly on a best-effort /
-spare-time basis, and we urge users to update to py3 as soon as possible.)
+Note: python 2.7 compatibility was removed in version 1.4.0 and the v1.3
+branch is no longer being maintained. This means that among other issues,
+support for zstandard-compressed deb packages will not be available on
+py27 -- consider this impetus to upgrade if you have not already.
 
 ## Installing
 
