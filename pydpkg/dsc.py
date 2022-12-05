@@ -67,7 +67,7 @@ class Dsc(_Dbase):
     def get(self, item, ret=None):
         """Public wrapper for getitem"""
         try:
-            return self.__getitem__(item)
+            return self[item]
         except KeyError:
             return ret
 
