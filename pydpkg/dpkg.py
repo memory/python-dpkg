@@ -202,7 +202,7 @@ class Dpkg(_Dbase):
         :returns: string
         """
         try:
-            return self.__getitem__(item)
+            return self[item]
         except KeyError:
             return default
 
