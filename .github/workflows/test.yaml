@@ -1,0 +1,17 @@
+
+name: pydpkg
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - run: python3.11 -m pip install pydpkg
+      - run: python3.11 -c 'import pydpkg'
