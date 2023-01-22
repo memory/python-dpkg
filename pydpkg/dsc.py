@@ -203,7 +203,6 @@ class Dsc(_Dbase):
                 if line:  # grrr
                     found.append(line.strip().split(" "))
             files = [x[2] for x in found]
-            print(f"Files: {files}")
             if base not in files:
                 self._log.debug("dsc file not found in %s: %s", key, base)
                 self._log.debug("getting hasher for %s", hashtype)
