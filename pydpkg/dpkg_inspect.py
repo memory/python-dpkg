@@ -5,8 +5,6 @@ dpkg_inspect: a simple tool to dump the control information from
 a debian package file using python-dpkg
 """
 
-from __future__ import print_function
-
 import glob
 import logging
 import os

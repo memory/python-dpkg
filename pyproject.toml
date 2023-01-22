@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydpkg"
-version = "1.9.0"
+version = "1.9.1"
 description = "A python library for parsing debian package control headers and version strings"
 authors = ["Nathan J. Mehl <pypi@memory.blank.org>"]
 homepage = "https://github.com/memory/python-dpkg"
