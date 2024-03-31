@@ -1,4 +1,4 @@
-""" pydpkg.exceptions: what it says on the tin """
+"""pydpkg.exceptions: what it says on the tin"""
 
 
 class DpkgError(Exception):
