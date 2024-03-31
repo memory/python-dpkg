@@ -178,9 +178,7 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_revision_strings("0", "00"), 0)
         self.assertEqual(Dpkg.compare_revision_strings("00.0.9", "0.0.9"), 0)
         self.assertEqual(Dpkg.compare_revision_strings("0.00.9-foo", "0.0.9-foo"), 0)
-        self.assertEqual(
-            Dpkg.compare_revision_strings("0.0.9-1.00foo", "0.0.9-1.0foo"), 0
-        )
+        self.assertEqual(Dpkg.compare_revision_strings("0.0.9-1.00foo", "0.0.9-1.0foo"), 0)
 
         # less than
         self.assertEqual(Dpkg.compare_revision_strings("0.0.9", "0.0.10"), -1)
@@ -188,17 +186,13 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_revision_strings("0.0.9-foo", "0.0.10-goo"), -1)
         self.assertEqual(Dpkg.compare_revision_strings("0.0.9-foo", "0.0.9-goo"), -1)
         self.assertEqual(Dpkg.compare_revision_strings("0.0.10-foo", "0.0.10-goo"), -1)
-        self.assertEqual(
-            Dpkg.compare_revision_strings("0.0.9-1.0foo", "0.0.9-1.1foo"), -1
-        )
+        self.assertEqual(Dpkg.compare_revision_strings("0.0.9-1.0foo", "0.0.9-1.1foo"), -1)
 
         # greater than
         self.assertEqual(Dpkg.compare_revision_strings("0.0.10", "0.0.9"), 1)
         self.assertEqual(Dpkg.compare_revision_strings("0.0.10-foo", "0.0.9-foo"), 1)
         self.assertEqual(Dpkg.compare_revision_strings("0.0.10-foo", "0.0.9-goo"), 1)
-        self.assertEqual(
-            Dpkg.compare_revision_strings("0.0.9-1.0foo", "0.0.9-1.0bar"), 1
-        )
+        self.assertEqual(Dpkg.compare_revision_strings("0.0.9-1.0foo", "0.0.9-1.0bar"), 1)
 
     def test_compare_versions(self):
         # "This [the epoch] is a single (generally small) unsigned integer.
@@ -232,14 +226,10 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_versions("9.0.0", "10.0.0"), -1)
         self.assertEqual(Dpkg.compare_versions("1.2.3-1~deb7u1", "1.2.3-1"), -1)
         self.assertEqual(
-            Dpkg.compare_versions(
-                "2.7.4+reloaded2-13ubuntu1", "2.7.4+reloaded2-13+deb9u1"
-            ),
+            Dpkg.compare_versions("2.7.4+reloaded2-13ubuntu1", "2.7.4+reloaded2-13+deb9u1"),
             -1,
         )
-        self.assertEqual(
-            Dpkg.compare_versions("2.7.4+reloaded2-13", "2.7.4+reloaded2-13+deb9u1"), -1
-        )
+        self.assertEqual(Dpkg.compare_versions("2.7.4+reloaded2-13", "2.7.4+reloaded2-13+deb9u1"), -1)
 
         # greater than
         self.assertEqual(Dpkg.compare_versions("0.0.1-0", "0:0.0.0"), 1)
@@ -250,14 +240,10 @@ class DpkgVersionsTest(unittest.TestCase):
         self.assertEqual(Dpkg.compare_versions("9.0.0", "1.0.0"), 1)
         self.assertEqual(Dpkg.compare_versions("1.2.3-1", "1.2.3-1~deb7u1"), 1)
         self.assertEqual(
-            Dpkg.compare_versions(
-                "2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13ubuntu1"
-            ),
+            Dpkg.compare_versions("2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13ubuntu1"),
             1,
         )
-        self.assertEqual(
-            Dpkg.compare_versions("2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13"), 1
-        )
+        self.assertEqual(Dpkg.compare_versions("2.7.4+reloaded2-13+deb9u1", "2.7.4+reloaded2-13"), 1)
 
         # unicode me harder
         self.assertEqual(Dpkg.compare_versions("2:0.0.44-1", "2:0.0.44-nobin"), -1)

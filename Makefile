@@ -3,10 +3,16 @@ all:
 
 SHELL = /bin/bash
 
+CYAN=\033[0;36m
+RED=\033[0;31m
+ORANGE=\033[38;5;208m
+WHITE=\033[1;37m
+RST=\033[0m
+
 NAME := pydpkg
 PYMAJOR := 3
-PYREV := 10
-PYPATCH := 7
+PYREV := 11
+PYPATCH := 8
 PYVERSION := ${PYMAJOR}.${PYREV}.${PYPATCH}
 PYENV := ${HOME}/.pyenv/versions/${PYVERSION}
 VENV_NAME := ${NAME}-${PYVERSION}
@@ -69,12 +75,20 @@ ${EGGLINK}: poetry.lock
 setup: .python-version ${EGGLINK}
 
 clean:
+	@echo -e "${ORANGE}*** Removing untracked files with git-clean --fdx!${RST}"
 	git clean -fdx -e '*.ipynb'
 
-nuke:
-	git clean -fdx -e '*.ipynb'
+nuke: clean
+	@echo -e "${RED}*** Nuking your virtualenv: ${WHITE}${VENV_NAME}${RST}"
 	rm -f .python-version
-	${ARCH_PREFIX} ${PYENV_BIN} uninstall -f ${PYVERSION}/envs/${VENV_NAME}
+	${PYENV_BIN} uninstall -f ${VENV_NAME}
+	rm -rf ${VENV_DIR}
+
+# usually there's no reason to uninstall python itself, and reinstalling
+# it is so very very slow
+tacnuke: nuke
+	@echo -e "${RED}*** Nuking your python distribution to bedrock: ${WHITE}${PYVERSION}${RST}"
+	${PYENV_BIN} uninstall -f ${PYVERSION}
 
 update: pyproject.toml
 	${ARCH_PREFIX} ${POETRY_BIN} lock
@@ -82,34 +96,21 @@ update: pyproject.toml
 	${ARCH_PREFIX} ${POETRY_BIN} update
 
 format: setup
-	${ARCH_PREFIX} ${POETRY_BIN} run isort . && poetry run black .
+	${ARCH_PREFIX} ${POETRY_BIN} run ruff format
 
 format-check: setup
-	${ARCH_PREFIX} ${POETRY_BIN} run isort --check . && poetry run black --check .
-
-test: black pylint flakeheaven pycodestyle pytest
-	@echo "Running all tests"
+	${ARCH_PREFIX} ${POETRY_BIN} run ruff format --check
 
 pytest: setup
 	@echo "Running unit tests"
 	${ARCH_PREFIX} ${POETRY_BIN} run pytest -p no:warnings tests
 
-black: setup
-	@echo "Checking code formatting and imports..."
-	${ARCH_PREFIX} ${POETRY_BIN} run black --check .
+ruff: setup
+	@echo "Linting code style with ruff..."
+	${ARCH_PREFIX} ${POETRY_BIN} run ruff check
 
-pylint: setup
-	@echo "Linting code style with pylint..."
-	${ARCH_PREFIX} ${POETRY_BIN} run pylint -d R0912 -d W0511 ${NAME}
-
-flakeheaven: setup
-	@echo "Linting code style with flakeheaven..."
-	${ARCH_PREFIX} ${POETRY_BIN} run flakeheaven lint ${NAME} test
-
-pycodestyle: setup
-	@echo "Linting codestyle with pycodestyle (formerly pep8)"
-	@# ignore E203 because pep8 and black disagree about whitespace before ':'
-	${ARCH_PREFIX} ${POETRY_BIN} run pycodestyle --max-line-length=120 --ignore=E203 ${NAME}
+test: ruff pytest
+	@echo "Running all tests"
 
 install: setup
 

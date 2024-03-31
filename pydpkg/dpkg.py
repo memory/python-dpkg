@@ -1,4 +1,4 @@
-""" pydpkg.dpkg.Dpkg: a class to represent dpkg files """
+"""pydpkg.dpkg.Dpkg: a class to represent dpkg files"""
 
 # stdlib imports
 import hashlib
@@ -31,7 +31,6 @@ REQUIRED_HEADERS = ("package", "version", "architecture")
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
 class Dpkg(_Dbase):
-
     """Class allowing import and manipulation of a debian package file."""
 
     def __init__(self, filename=None, ignore_missing=False, logger=None):
@@ -231,9 +230,7 @@ class Dpkg(_Dbase):
         tar_members = [os.path.basename(x.name) for x in ctar.getmembers()]
         self._log.debug("got tar members: %s", tar_members)
         if "control" not in tar_members:
-            raise DpkgMissingControlFile(
-                "Corrupt dpkg file: no control file in control.tar.gz"
-            )
+            raise DpkgMissingControlFile("Corrupt dpkg file: no control file in control.tar.gz")
         control_idx = tar_members.index("control")
         self._log.debug("got control index: %s", control_idx)
         # at last!
@@ -260,9 +257,7 @@ class Dpkg(_Dbase):
             control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
             control_archive_type = "zst"
         else:
-            raise DpkgMissingControlGzipFile(
-                "Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive."
-            )
+            raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
         self._log.debug("found controlgz: %s", control_archive)
 
         if control_archive_type == "gz":
@@ -290,9 +285,7 @@ class Dpkg(_Dbase):
                 if self.ignore_missing:
                     self._log.debug('Header "%s" not found in control message', req)
                     continue
-                raise DpkgMissingRequiredHeaderError(
-                    f"Corrupt control section; header: '{req}' not found"
-                )
+                raise DpkgMissingRequiredHeaderError(f"Corrupt control section; header: '{req}' not found")
         self._log.debug("all required headers found")
 
         for header in message.keys():
@@ -457,9 +450,7 @@ class Dpkg(_Dbase):
                     raise IndexError
                 # just in case
                 if not isinstance(item, list2[i].__class__):
-                    raise DpkgVersionError(
-                        f"Cannot compare '{item}' to {list2[i]}, something has gone horribly awry."
-                    )
+                    raise DpkgVersionError(f"Cannot compare '{item}' to {list2[i]}, something has gone horribly awry.")
                 # if the items are equal, next
                 if item == list2[i]:
                     continue

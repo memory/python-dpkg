@@ -9,11 +9,11 @@ jobs:
     strategy:
       matrix:
         python-version:
-        - "3.7"
         - "3.8"
         - "3.9"
         - "3.10"
         - "3.11"
+        - "3.12"
 
     steps:
       - uses: actions/checkout@v2
@@ -28,13 +28,7 @@ jobs:
           poetry install
         env:
           POETRY_VIRTUALENVS_CREATE: false
-      - name: Check formatting
-        run: poetry run black --check .
-      - name: Lint with flakeheaven
-        run: poetry run flakeheaven lint pydpkg test
-      - name: Lint with pylint
-        run: poetry run pylint -d R0912 -d W0511 pydpkg/
-      - name: Lint with pycodestyle (aka pep8)
-        run: poetry run pycodestyle --max-line-length=120 --ignore=E203 pydpkg/
+      - name: Check formatting and linting
+        run: poetry run ruff check
       - name: Test with pytest
         run: poetry run pytest tests/

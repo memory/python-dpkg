@@ -1,4 +1,4 @@
-""" pydpkg.dpkg.Dpkg: a class to represent dpkg files """
+"""pydpkg.dpkg.Dpkg: a class to represent dpkg files"""
 
 # stdlib imports
 import hashlib
@@ -238,9 +238,7 @@ class Dsc(_Dbase):
             self._log.fatal('Could not read dsc file "%s": %s', self.filename, ex)
             raise
         except (ValueError, pgpy.errors.PGPError) as ex:
-            self._log.warning(
-                "dsc file %s is not signed or has a corrupt sig: %s", self.filename, ex
-            )
+            self._log.warning("dsc file %s is not signed or has a corrupt sig: %s", self.filename, ex)
         if self._pgp_message is not None:
             msg = message_from_string(self._pgp_message.message)
         else:
@@ -264,9 +262,7 @@ class Dsc(_Dbase):
         try:
             files = self.message["Files"]
         except KeyError:
-            self._log.fatal(
-                'DSC file "%s" does not have a Files section', self.filename
-            )
+            self._log.fatal('DSC file "%s" does not have a Files section', self.filename)
             raise
         for line in files.split("\n"):
             if line:

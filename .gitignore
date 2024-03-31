@@ -10,3 +10,4 @@ build/
 dist/
 .eggs
 .python-version
+.flakeheaven_cache
