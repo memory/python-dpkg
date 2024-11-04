@@ -14,6 +14,7 @@ from functools import cmp_to_key
 from email import message_from_string
 from email.message import Message
 from gzip import GzipFile
+from itertools import zip_longest
 
 # pypi imports
 import six
@@ -480,37 +481,46 @@ class Dpkg(_Dbase):
         list2 = Dpkg.listify(rev2)
         if list1 == list2:
             return 0
-        try:
-            for i, item in enumerate(list1):
-                # explicitly raise IndexError if we've fallen off the edge of list2
-                if i >= len(list2):
-                    raise IndexError
-                # just in case
-                if not isinstance(item, list2[i].__class__):
-                    raise DpkgVersionError(f"Cannot compare '{item}' to {list2[i]}, something has gone horribly awry.")
-                # if the items are equal, next
-                if item == list2[i]:
-                    continue
-                # numeric comparison
-                if isinstance(item, int):
-                    if item > list2[i]:
-                        return 1
-                    if item < list2[i]:
-                        return -1
-                else:
-                    # string comparison
-                    return Dpkg.dstringcmp(item, list2[i])
-        except IndexError:
-            # rev1 is longer than rev2 but otherwise equal, hence greater
-            # ...except for goddamn tildes
-            if list1[len(list2)][0][0] == "~":
+
+        def _tilde_case(elem: str | int | None) -> Literal[-1, 1]:
+            if isinstance(elem, str):
+                if elem[0] == "~":
+                    return -1
+                return 1
+            raise DpkgVersionError(f"Cannot compare '{elem}' to ~, something has gone horribly awry.")
+
+        def _numeric_case(i1: int, i2: int) -> Literal[-1, 0, 1]:
+            if i1 > i2:
+                return 1
+            if i1 < i2:
                 return -1
-            return 1
-        # rev1 is shorter than rev2 but otherwise equal, hence lesser
-        # ...except for goddamn tildes
-        if list2[len(list1)][0][0] == "~":
-            return 1
-        return -1
+            return 0
+
+        for i1, i2 in zip_longest(list1, list2, fillvalue=None):
+            if i2 is None:
+                # rev1 is longer than rev2 but otherwise equal, hence greater
+                # ...except for goddamn tildes
+                return _tilde_case(i1)
+
+            if i1 is None:
+                # rev1 is shorter than rev2 but otherwise equal, hence lesser
+                # ...except for goddamn tildes
+                return -1 if _tilde_case(i2) == 1 else 1
+
+            # if the items are equal, next
+            if isinstance(i1, int) and isinstance(i2, int):
+                cmp = _numeric_case(i1, i2)
+            elif isinstance(i1, str) and isinstance(i2, str):
+                cmp = Dpkg.dstringcmp(i1, i2)
+            else:
+                raise DpkgVersionError(f"Cannot compare '{i1}' to {i2}, something has gone horribly awry.")
+
+            if cmp == 0:
+                continue
+
+            return cmp
+
+        raise DpkgVersionError("Should have matched equal in the beginning")
 
     @staticmethod
     def compare_versions(ver1: str, ver2: str) -> Literal[-1, 0, 1]:

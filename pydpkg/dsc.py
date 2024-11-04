@@ -9,11 +9,12 @@ import os
 from collections import defaultdict
 from email import message_from_file, message_from_string
 from email.message import Message
-import pgpy
 from typing import TYPE_CHECKING
 
 # pypi imports
 import six
+import pgpy
+
 
 # local imports
 from pydpkg.exceptions import (
