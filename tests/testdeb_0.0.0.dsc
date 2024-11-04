@@ -18,4 +18,3 @@ Checksums-Sha256:
 Files:
  142ca7334ed1f70302b4504566e0c233 280 testdeb_0.0.0.orig.tar.gz
  fc80e6e7f1c1a08b78a674aaee6c1548 232 testdeb_0.0.0-1.debian.tar.xz
-
