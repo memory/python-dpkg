@@ -10,6 +10,7 @@ from collections import defaultdict
 from email import message_from_file, message_from_string
 from email.message import Message
 import pgpy
+from typing import TYPE_CHECKING
 
 # pypi imports
 import six
@@ -20,6 +21,9 @@ from pydpkg.exceptions import (
     DscBadChecksumsError,
 )
 from pydpkg.base import _Dbase
+
+if TYPE_CHECKING:
+    from hashlib import _Hash
 
 REQUIRED_HEADERS = ("package", "version", "architecture")
 
@@ -213,7 +217,7 @@ class Dsc(_Dbase):
             if base not in files:
                 self._log.debug("dsc file not found in %s: %s", key, base)
                 self._log.debug("getting hasher for %s", hashtype)
-                hasher = getattr(hashlib, hashtype)()
+                hasher: _Hash = getattr(hashlib, hashtype)()
                 self._log.debug("hashing file")
                 with open(self.filename, "rb") as fileobj:
                     # pylint: disable=cell-var-from-loop
@@ -287,7 +291,7 @@ class Dsc(_Dbase):
         bad_hashes: defaultdict[str, defaultdict[str, str | None]] = defaultdict(lambda: defaultdict(None))
         for hashtype, filenames in six.iteritems(self.checksums):
             for filename, digest in six.iteritems(filenames):
-                hasher = getattr(hashlib, hashtype)()
+                hasher: _Hash = getattr(hashlib, hashtype)()
                 with open(filename, "rb") as fileobj:
                     # pylint: disable=cell-var-from-loop
                     for chunk in iter(lambda: fileobj.read(128), b""):

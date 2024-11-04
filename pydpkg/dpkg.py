@@ -9,16 +9,17 @@ import logging
 import lzma
 import os
 import tarfile
-from typing import Literal, Any, TypedDict, TYPE_CHECKING, Union
+from typing import Literal, Any, TypedDict, TYPE_CHECKING, Union, IO
 from functools import cmp_to_key
 from email import message_from_string
 from email.message import Message
 from gzip import GzipFile
+from contextlib import contextmanager
 
 # pypi imports
 import six
 import zstandard
-from arpy import Archive
+from arpy import Archive, ArchiveFileData
 
 # local imports
 from pydpkg.exceptions import (
@@ -31,8 +32,8 @@ from pydpkg.exceptions import (
 from pydpkg.base import _Dbase
 
 if TYPE_CHECKING:
-    from _typeshed import SupportsAllComparisons
-
+    from _typeshed import SupportsAllComparisons, SupportsRead
+    from collections.abc import Generator
 
 REQUIRED_HEADERS = ("package", "version", "architecture")
 
@@ -270,41 +271,63 @@ class Dpkg(_Dbase):
         self._log.debug("got control message: %s", message)
         return message
 
-    def _process_dpkg_file(self, filename: str) -> Message[str, str]:
-        dpkg_archive = Archive(filename)
+    def _read_archive(self, dpkg_archive: Archive) -> tuple[ArchiveFileData, Literal["gz", "xz", "zst"]]:
         dpkg_archive.read_all_headers()
+
         if b"control.tar.gz" in dpkg_archive.archived_files:
             control_archive = dpkg_archive.archived_files[b"control.tar.gz"]
-            control_archive_type = "gz"
-        elif b"control.tar.xz" in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
-            control_archive_type = "xz"
-        elif b"control.tar.zst" in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
-            control_archive_type = "zst"
-        else:
-            raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
-        self._log.debug("found controlgz: %s", control_archive)
+            return control_archive, "gz"
 
+        if b"control.tar.xz" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
+            return control_archive, "xz"
+
+        if b"control.tar.zst" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
+            return control_archive, "zst"
+
+        raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
+
+    def _extract_message_from_tar(self, fd: SupportsRead[bytes]) -> Message[str, str]:
+        with tarfile.open(fileobj=io.BytesIO(fd.read())) as ctar:
+            self._log.debug("opened tar file: %s", ctar)
+            message = self._extract_message(ctar)
+        return message
+
+    def _extract_message_from_archive(
+        self, control_archive: IO[bytes], control_archive_type: Literal["gz", "xz", "zst"]
+    ) -> Message[str, str]:
         if control_archive_type == "gz":
             with GzipFile(fileobj=control_archive) as gzf:
                 self._log.debug("opened gzip control archive: %s", gzf)
-                with tarfile.open(fileobj=io.BytesIO(gzf.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
+                message = self._extract_message_from_tar(gzf)
         elif control_archive_type == "xz":
             with lzma.open(control_archive) as xzf:
                 self._log.debug("opened xz control archive: %s", xzf)
-                with tarfile.open(fileobj=io.BytesIO(xzf.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
-        else:
+                message = self._extract_message_from_tar(xzf)
+        elif control_archive_type == "zst":
             zst = zstandard.ZstdDecompressor()
             with zst.stream_reader(control_archive) as reader:
                 self._log.debug("opened zst control archive: %s", reader)
-                with tarfile.open(fileobj=io.BytesIO(reader.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
+                message = self._extract_message_from_tar(reader)
+        else:
+            raise DpkgError(f"Unknown control archive type: {control_archive_type}")
+        return message
+
+    def _process_dpkg_file(self, filename: str) -> Message[str, str]:
+        @contextmanager
+        def archive_context(filename: str) -> Generator[Archive]:
+            """Close archive after use."""
+            dpkg_archive = Archive(filename)
+            try:
+                yield dpkg_archive
+            finally:
+                dpkg_archive.close()
+
+        with archive_context(filename) as archive:
+            control_archive, control_archive_type = self._read_archive(archive)
+            self._log.debug("found controlgz: %s", control_archive)
+            message = self._extract_message_from_archive(control_archive, control_archive_type)
 
         for req in REQUIRED_HEADERS:
             if req not in list(map(str.lower, message.keys())):
