@@ -286,7 +286,8 @@ class Dpkg(_Dbase):
 
         raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
 
-    def _extract_message_from_tar(self, fd: SupportsRead[bytes]) -> Message[str, str]:
+    def _extract_message_from_tar(self, fd: SupportsRead[bytes], archive_name: str = "undefined") -> Message[str, str]:
+        self._log.debug("opened %s control archive: %s", archive_name, fd)
         with tarfile.open(fileobj=io.BytesIO(fd.read())) as ctar:
             self._log.debug("opened tar file: %s", ctar)
             message = self._extract_message(ctar)
@@ -297,20 +298,18 @@ class Dpkg(_Dbase):
     ) -> Message[str, str]:
         if control_archive_type == "gz":
             with GzipFile(fileobj=control_archive) as gzf:
-                self._log.debug("opened gzip control archive: %s", gzf)
-                message = self._extract_message_from_tar(gzf)
-        elif control_archive_type == "xz":
+                return self._extract_message_from_tar(gzf, "gzip")
+
+        if control_archive_type == "xz":
             with lzma.open(control_archive) as xzf:
-                self._log.debug("opened xz control archive: %s", xzf)
-                message = self._extract_message_from_tar(xzf)
-        elif control_archive_type == "zst":
+                return self._extract_message_from_tar(xzf, "xz")
+
+        if control_archive_type == "zst":
             zst = zstandard.ZstdDecompressor()
             with zst.stream_reader(control_archive) as reader:
-                self._log.debug("opened zst control archive: %s", reader)
-                message = self._extract_message_from_tar(reader)
-        else:
-            raise DpkgError(f"Unknown control archive type: {control_archive_type}")
-        return message
+                return self._extract_message_from_tar(reader, "zst")
+
+        raise DpkgError(f"Unknown control archive type: {control_archive_type}")
 
     def _process_dpkg_file(self, filename: str) -> Message[str, str]:
         with Archive(filename) as archive:
