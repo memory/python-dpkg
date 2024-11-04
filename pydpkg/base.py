@@ -2,10 +2,12 @@
 Base class to avoid pylint complaining about duplicate code
 """
 
+from __future__ import annotations
+
 
 class _Dbase:
     # pylint: disable=too-few-public-methods
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> str:
         """Overload getitem to treat the message plus our local
         properties as items.
 

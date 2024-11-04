@@ -1,5 +1,7 @@
 """pydpkg.exceptions: what it says on the tin"""
 
+from __future__ import annotations
+
 
 class DpkgError(Exception):
     """Base error class for Dpkg errors"""

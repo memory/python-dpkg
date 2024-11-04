@@ -5,6 +5,7 @@ dpkg_inspect: a simple tool to dump the control information from
 a debian package file using python-dpkg
 """
 
+from __future__ import annotations
 import glob
 import logging
 import os
@@ -25,7 +26,7 @@ Headers:
 {5}"""
 
 
-def indent(input_str, prefix):
+def indent(input_str: str, prefix: str) -> str:
     """
     Given a multiline string, return it with every line prefixed by "prefix"
     """
