@@ -14,7 +14,6 @@ from functools import cmp_to_key
 from email import message_from_string
 from email.message import Message
 from gzip import GzipFile
-from contextlib import contextmanager
 
 # pypi imports
 import six
@@ -33,7 +32,6 @@ from pydpkg.base import _Dbase
 
 if TYPE_CHECKING:
     from _typeshed import SupportsAllComparisons, SupportsRead
-    from collections.abc import Generator
 
 REQUIRED_HEADERS = ("package", "version", "architecture")
 
@@ -315,16 +313,7 @@ class Dpkg(_Dbase):
         return message
 
     def _process_dpkg_file(self, filename: str) -> Message[str, str]:
-        @contextmanager
-        def archive_context(filename: str) -> Generator[Archive]:
-            """Close archive after use."""
-            dpkg_archive = Archive(filename)
-            try:
-                yield dpkg_archive
-            finally:
-                dpkg_archive.close()
-
-        with archive_context(filename) as archive:
+        with Archive(filename) as archive:
             control_archive, control_archive_type = self._read_archive(archive)
             self._log.debug("found controlgz: %s", control_archive)
             message = self._extract_message_from_archive(control_archive, control_archive_type)
