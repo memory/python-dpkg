@@ -91,17 +91,17 @@ class DscTest(unittest.TestCase):
             {
                 "md5": {
                     xz: "fc80e6e7f1c1a08b78a674aaee6c1548",
-                    dsc: "739bc26254611231dfbb93619151d2b1",
+                    dsc: "893d13a2ef13f7409c9521e8ab1dbccb",
                     gz: "142ca7334ed1f70302b4504566e0c233",
                 },
                 "sha1": {
                     xz: "cb3474ff94053018957ebcf1d8a2b45f75dda449",
-                    dsc: "19331d9d4ab75fc184ff39cebc09c36c957c5c02",
+                    dsc: "80cd7b01014a269d445c63b037b885d6002cf533",
                     gz: "f250ac0a426b31df24fc2c98050f4fab90e456cd",
                 },
                 "sha256": {
                     xz: "1ddb2a7336a99bc1d203f3ddb59f6fa2d298e90cb3e59cccbe0c84e359979858",
-                    dsc: "c5146bfe11e02d532134ed0432c97f0adccd4b623e851b5ad57c02495e7fa14d",
+                    dsc: "b5ad1591349eb48db65e6865be506ad7dbd21931902a71addee5b1db9ae1ac2a",
                     gz: "aa57ba8f29840383f5a96c5c8f166a9e6da7a484151938643ce2618e82bfeea7",
                 },
             },
@@ -117,13 +117,13 @@ class DscTest(unittest.TestCase):
         self.maxDiff = None
         files = """142ca7334ed1f70302b4504566e0c233 280 testdeb_0.0.0.orig.tar.gz
  fc80e6e7f1c1a08b78a674aaee6c1548 232 testdeb_0.0.0-1.debian.tar.xz
- 739bc26254611231dfbb93619151d2b1 840 testdeb_0.0.0.dsc"""
+ 893d13a2ef13f7409c9521e8ab1dbccb 841 testdeb_0.0.0.dsc"""
         sha_1 = """f250ac0a426b31df24fc2c98050f4fab90e456cd 280 testdeb_0.0.0.orig.tar.gz
  cb3474ff94053018957ebcf1d8a2b45f75dda449 232 testdeb_0.0.0-1.debian.tar.xz
- 19331d9d4ab75fc184ff39cebc09c36c957c5c02 840 testdeb_0.0.0.dsc"""
+ 80cd7b01014a269d445c63b037b885d6002cf533 841 testdeb_0.0.0.dsc"""
         sha_256 = """aa57ba8f29840383f5a96c5c8f166a9e6da7a484151938643ce2618e82bfeea7 280 testdeb_0.0.0.orig.tar.gz
  1ddb2a7336a99bc1d203f3ddb59f6fa2d298e90cb3e59cccbe0c84e359979858 232 testdeb_0.0.0-1.debian.tar.xz
- c5146bfe11e02d532134ed0432c97f0adccd4b623e851b5ad57c02495e7fa14d 840 testdeb_0.0.0.dsc"""
+ b5ad1591349eb48db65e6865be506ad7dbd21931902a71addee5b1db9ae1ac2a 841 testdeb_0.0.0.dsc"""
         self.assertEqual(
             self.good.message["Files"].strip(),
             files,
