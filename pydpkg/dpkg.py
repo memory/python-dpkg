@@ -76,11 +76,11 @@ class Dpkg(_Dbase):
         self._debian_revision: str | None = None
         self._epoch: int | None = None
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # type: ignore[explicit-override]
         return repr(self.control_str)
 
-    def __str__(self) -> str:
-        return six.text_type(self.control_str)
+    def __str__(self) -> str:  # type: ignore[explicit-override]
+        return six.text_type(self.control_str)  # type: ignore[no-any-return]
 
     def __getattr__(self, attr: str) -> str:
         """Overload getattr to treat control message headers as object
@@ -213,7 +213,7 @@ class Dpkg(_Dbase):
             self._debian_revision = self.split_full_version(self.version)[2]
         return self._debian_revision
 
-    def get(self, item: str, default: str | None = None) -> str | None:
+    def get(self, item: str, default: str | None = None) -> Any | None:
         """Return an object property, a message header, None or the caller-
         provided default.
 
@@ -249,6 +249,7 @@ class Dpkg(_Dbase):
         return obj
 
     def _extract_message(self, ctar: tarfile.TarFile) -> Message[str, str]:
+        """Extract the control file from an opened tar archive as a Message object"""
         # pathname in the tar could be ./control, or just control
         # (there would never be two control files...right?)
         tar_members = [os.path.basename(x.name) for x in ctar.getmembers()]
@@ -271,6 +272,7 @@ class Dpkg(_Dbase):
         return message
 
     def _read_archive(self, dpkg_archive: Archive) -> tuple[ArchiveFileData, Literal["gz", "xz", "zst"]]:
+        """Search an opened archive for a compressed control file and return it plus the compression"""
         dpkg_archive.read_all_headers()
 
         if b"control.tar.gz" in dpkg_archive.archived_files:
@@ -288,6 +290,7 @@ class Dpkg(_Dbase):
         raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
 
     def _extract_message_from_tar(self, fd: SupportsRead[bytes], archive_name: str = "undefined") -> Message[str, str]:
+        """Extract the control file in a tar archive from a decompressed archive fileobj"""
         self._log.debug("opened %s control archive: %s", archive_name, fd)
         with tarfile.open(fileobj=io.BytesIO(fd.read())) as ctar:
             self._log.debug("opened tar file: %s", ctar)
@@ -297,6 +300,7 @@ class Dpkg(_Dbase):
     def _extract_message_from_archive(
         self, control_archive: IO[bytes], control_archive_type: Literal["gz", "xz", "zst"]
     ) -> Message[str, str]:
+        """Extract the control file from a compressed archive fileobj"""
         if control_archive_type == "gz":
             with GzipFile(fileobj=control_archive) as gzf:
                 return self._extract_message_from_tar(gzf, "gzip")
@@ -435,37 +439,45 @@ class Dpkg(_Dbase):
 
         if a == b:
             return 0
-        try:
-            for i, char in enumerate(a):
-                if char == b[i]:
-                    continue
-                # "a tilde sorts before anything, even the end of a part"
-                # (emptyness)
-                if char == "~":
-                    return -1
-                if b[i] == "~":
-                    return 1
-                # "all the letters sort earlier than all the non-letters"
-                if char.isalpha() and not b[i].isalpha():
-                    return -1
-                if not char.isalpha() and b[i].isalpha():
-                    return 1
-                # otherwise lexical sort
-                if ord(char) > ord(b[i]):
-                    return 1
-                if ord(char) < ord(b[i]):
-                    return -1
-        except IndexError:
-            # a is longer than b but otherwise equal, hence greater
-            # ...except for goddamn tildes
-            if char == "~":
+
+        def _tilde_case(longer: str | None) -> Literal[-1, 1]:
+            if longer is None:
+                raise DpkgVersionError("Cannot compare None to ~, something has gone horribly awry.")
+            if longer[0] == "~":
                 return -1
             return 1
-        # if we get here, a is shorter than b but otherwise equal, hence lesser
-        # ...except for goddamn tildes
-        if b[len(a)] == "~":
-            return 1
-        return -1
+
+        for char_a, char_b in zip_longest(a, b, fillvalue=None):
+            if char_b is None:
+                # a is longer than b but otherwise equal, hence greater
+                # ...except for goddamn tildes
+                return _tilde_case(char_a)
+
+            if char_a is None:
+                # if we get here, a is shorter than b but otherwise equal, hence lesser
+                # ...except for goddamn tildes
+                return -1 if _tilde_case(char_b) == 1 else 1
+
+            if char_a == char_b:
+                continue
+
+            # "a tilde sorts before anything, even the end of a part"
+            # (emptyness)
+            if char_a == "~":
+                return -1
+            if char_b == "~":
+                return 1
+            # "all the letters sort earlier than all the non-letters"
+            if char_a.isalpha() and not char_b.isalpha():
+                return -1
+            if not char_a.isalpha() and char_b.isalpha():
+                return 1
+            # otherwise lexical sort
+            if ord(char_a) > ord(char_b):
+                return 1
+            if ord(char_a) < ord(char_b):
+                return -1
+        raise DpkgVersionError("Should have matched equal in the beginning")
 
     @staticmethod
     def compare_revision_strings(rev1: str, rev2: str) -> Literal[-1, 0, 1]:

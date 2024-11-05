@@ -9,7 +9,7 @@ import os
 from collections import defaultdict
 from email import message_from_file, message_from_string
 from email.message import Message
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # pypi imports
 import six
@@ -49,13 +49,13 @@ class Dsc(_Dbase):
         self._corrected_checksums: dict[str, defaultdict[str, str | None]] | None = None
         self._pgp_message: pgpy.PGPMessage | None = None
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # type: ignore[explicit-override]
         return repr(self.message_str)
 
-    def __str__(self) -> str:
-        return six.text_type(self.message_str)
+    def __str__(self) -> str:  # type: ignore[explicit-override]
+        return six.text_type(self.message_str)  # type: ignore[no-any-return]
 
-    def __getattr__(self, attr: str) -> str:
+    def __getattr__(self, attr: str) -> Any:
         """Overload getattr to treat message headers as object
         attributes (so long as they do not conflict with an existing
         attribute).
@@ -74,7 +74,7 @@ class Dsc(_Dbase):
             return self.message[munged]
         raise AttributeError(f"'Dsc' object has no attribute '{attr}'")
 
-    def get(self, item: str, ret: str | None = None) -> str | None:
+    def get(self, item: str, ret: str | None = None) -> Any | None:
         """Public wrapper for getitem"""
         try:
             return self[item]

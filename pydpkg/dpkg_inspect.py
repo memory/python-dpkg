@@ -33,7 +33,7 @@ def indent(input_str: str, prefix: str) -> str:
     return "\n".join([f"{prefix}{x}" for x in input_str.split("\n")])
 
 
-def main():
+def main() -> None:
     """pylint really wants a docstring :)"""
     try:
         file_names = sys.argv[1:]
