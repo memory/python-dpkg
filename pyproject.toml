@@ -37,10 +37,27 @@ cryptography = ">=39.0.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 ruff = "0.3.4"
+mypy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+# Enable all error messages.
+python_version = "3.8"
+enable_error_code = '''type-arg,no-untyped-def,redundant-cast,redundant-self,comparison-overlap,
+                    no-untyped-call,no-any-return,no-any-unimported,unreachable,redundant-expr,
+                    possibly-undefined,truthy-bool,truthy-iterable,ignore-without-code,
+                    unused-awaitable,unused-ignore,explicit-override,unimported-reveal'''
+disable_error_code = 'import-untyped'
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+exclude = ["build", "docs", "tests"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
