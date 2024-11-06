@@ -30,5 +30,7 @@ jobs:
           POETRY_VIRTUALENVS_CREATE: false
       - name: Check formatting and linting
         run: poetry run ruff check
+      - name: Static type checking
+        run: poetry run mypy pydpkg/
       - name: Test with pytest
         run: poetry run pytest tests/

@@ -1,5 +1,7 @@
 """pydpkg.dpkg.Dpkg: a class to represent dpkg files"""
 
+from __future__ import annotations
+
 # stdlib imports
 import hashlib
 import io
@@ -7,14 +9,17 @@ import logging
 import lzma
 import os
 import tarfile
+from typing import Literal, Any, TypedDict, TYPE_CHECKING, Union, IO
 from functools import cmp_to_key
 from email import message_from_string
+from email.message import Message
 from gzip import GzipFile
+from itertools import zip_longest
 
 # pypi imports
 import six
 import zstandard
-from arpy import Archive
+from arpy import Archive, ArchiveFileData
 
 # local imports
 from pydpkg.exceptions import (
@@ -26,42 +31,58 @@ from pydpkg.exceptions import (
 )
 from pydpkg.base import _Dbase
 
+if TYPE_CHECKING:
+    from _typeshed import SupportsAllComparisons, SupportsRead
+
 REQUIRED_HEADERS = ("package", "version", "architecture")
+
+
+class FileInfo(TypedDict):
+    """Type definition for the fileinfo dictionary."""
+
+    md5: str
+    sha1: str
+    sha256: str
+    filesize: int
 
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods
 class Dpkg(_Dbase):
     """Class allowing import and manipulation of a debian package file."""
 
-    def __init__(self, filename=None, ignore_missing=False, logger=None):
+    def __init__(
+        self, filename: str | None = None, ignore_missing: bool = False, logger: logging.Logger | None = None
+    ) -> None:
         """Constructor for Dpkg object
 
         :param filename: string
         :param ignore_missing: bool
         :param logger: logging.Logger
         """
+        if not isinstance(filename, six.string_types):
+            raise DpkgError("filename argument must be a string")
+
         self.filename = os.path.expanduser(filename)
         self.ignore_missing = ignore_missing
-        if not isinstance(self.filename, six.string_types):
-            raise DpkgError("filename argument must be a string")
+
         if not os.path.isfile(self.filename):
             raise DpkgError(f"filename '{filename}' does not exist")
         self._log = logger or logging.getLogger(__name__)
-        self._fileinfo = None
-        self._control_str = None
-        self._headers = None
-        self._message = None
-        self._upstream_version = None
-        self._debian_revision = None
-        self._epoch = None
+        self._fileinfo: FileInfo | None = None
+        self._control_str: str | None = None
+        self._headers: dict[str, str] | None = None
+        self._message: Message[str, str] | None = None
+        self._upstream_version: str | None = None
+        self._debian_revision: str | None = None
+        self._epoch: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:  # type: ignore[explicit-override]
         return repr(self.control_str)
 
-    def __str__(self):
-        return six.text_type(self.control_str)
+    def __str__(self) -> str:  # type: ignore[explicit-override]
+        return six.text_type(self.control_str)  # type: ignore[no-any-return]
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> str:
         """Overload getattr to treat control message headers as object
         attributes (so long as they do not conflict with an existing
         attribute).
@@ -76,7 +97,7 @@ class Dpkg(_Dbase):
         raise AttributeError(f"'Dpkg' object has no attribute '{attr}'")
 
     @property
-    def message(self):
+    def message(self) -> Message[str, str]:
         """Return an email.Message object containing the package control
         structure.
 
@@ -87,7 +108,7 @@ class Dpkg(_Dbase):
         return self._message
 
     @property
-    def control_str(self):
+    def control_str(self) -> str:
         """Return the control message as a string
 
         :returns: string
@@ -97,7 +118,7 @@ class Dpkg(_Dbase):
         return self._control_str
 
     @property
-    def headers(self):
+    def headers(self) -> dict[str, str]:
         """Return the control message headers as a dict
 
         :returns: dict
@@ -107,7 +128,7 @@ class Dpkg(_Dbase):
         return self._headers
 
     @property
-    def fileinfo(self):
+    def fileinfo(self) -> FileInfo:
         """Return a dictionary containing md5/sha1/sha256 checksums
         and the size in bytes of our target file.
 
@@ -131,7 +152,7 @@ class Dpkg(_Dbase):
         return self._fileinfo
 
     @property
-    def md5(self):
+    def md5(self) -> str:
         """Return the md5 hash of our target file
 
         :returns: string
@@ -139,7 +160,7 @@ class Dpkg(_Dbase):
         return self.fileinfo["md5"]
 
     @property
-    def sha1(self):
+    def sha1(self) -> str:
         """Return the sha1 hash of our target file
 
         :returns: string
@@ -147,7 +168,7 @@ class Dpkg(_Dbase):
         return self.fileinfo["sha1"]
 
     @property
-    def sha256(self):
+    def sha256(self) -> str:
         """Return the sha256 hash of our target file
 
         :returns: string
@@ -155,7 +176,7 @@ class Dpkg(_Dbase):
         return self.fileinfo["sha256"]
 
     @property
-    def filesize(self):
+    def filesize(self) -> int:
         """Return the size of our target file
 
         :returns: string
@@ -163,7 +184,7 @@ class Dpkg(_Dbase):
         return self.fileinfo["filesize"]
 
     @property
-    def epoch(self):
+    def epoch(self) -> int:
         """Return the epoch portion of the package version string
 
         :returns: int
@@ -173,7 +194,7 @@ class Dpkg(_Dbase):
         return self._epoch
 
     @property
-    def upstream_version(self):
+    def upstream_version(self) -> str:
         """Return the upstream portion of the package version string
 
         :returns: string
@@ -183,7 +204,7 @@ class Dpkg(_Dbase):
         return self._upstream_version
 
     @property
-    def debian_revision(self):
+    def debian_revision(self) -> str:
         """Return the debian revision portion of the package version string
 
         :returns: string
@@ -192,7 +213,7 @@ class Dpkg(_Dbase):
             self._debian_revision = self.split_full_version(self.version)[2]
         return self._debian_revision
 
-    def get(self, item, default=None):
+    def get(self, item: str, default: str | None = None) -> Any | None:
         """Return an object property, a message header, None or the caller-
         provided default.
 
@@ -205,26 +226,30 @@ class Dpkg(_Dbase):
         except KeyError:
             return default
 
-    def get_header(self, header):
+    def get_header(self, header: str) -> str | None:
         """Return an individual control message header
 
         :returns: string or None
         """
         return self.message.get(header)
 
-    def compare_version_with(self, version_str):
+    def compare_version_with(self, version_str: str) -> Literal[-1, 0, 1]:
         """Compare my version to an arbitrary version"""
-        return Dpkg.compare_versions(self.get_header("version"), version_str)
+        header_version = self.get_header("version")
+        if header_version is None:
+            raise DpkgError("No version header found in control message")
+        return Dpkg.compare_versions(header_version, version_str)
 
     @staticmethod
-    def _force_encoding(obj, encoding="utf-8"):
+    def _force_encoding(obj: Any, encoding: str = "utf-8") -> Any:
         """Enforce uniform text encoding"""
         if isinstance(obj, six.string_types):
             if not isinstance(obj, six.text_type):
                 obj = six.text_type(obj, encoding)
         return obj
 
-    def _extract_message(self, ctar):
+    def _extract_message(self, ctar: tarfile.TarFile) -> Message[str, str]:
+        """Extract the control file from an opened tar archive as a Message object"""
         # pathname in the tar could be ./control, or just control
         # (there would never be two control files...right?)
         tar_members = [os.path.basename(x.name) for x in ctar.getmembers()]
@@ -235,50 +260,67 @@ class Dpkg(_Dbase):
         self._log.debug("got control index: %s", control_idx)
         # at last!
         control_file = ctar.extractfile(ctar.getmembers()[control_idx])
+        if control_file is None:
+            raise DpkgMissingControlFile("Corrupt dpkg file: control file is None")
         self._log.debug("got control file: %s", control_file)
-        message_body = control_file.read()
+        message_body: Union[str, bytes] = control_file.read()
         # py27 lacks email.message_from_bytes, so...
-        if isinstance(message_body, bytes):
+        if not isinstance(message_body, str):
             message_body = message_body.decode("utf-8")
         message = message_from_string(message_body)
         self._log.debug("got control message: %s", message)
         return message
 
-    def _process_dpkg_file(self, filename):
-        dpkg_archive = Archive(filename)
+    def _read_archive(self, dpkg_archive: Archive) -> tuple[ArchiveFileData, Literal["gz", "xz", "zst"]]:
+        """Search an opened archive for a compressed control file and return it plus the compression"""
         dpkg_archive.read_all_headers()
+
         if b"control.tar.gz" in dpkg_archive.archived_files:
             control_archive = dpkg_archive.archived_files[b"control.tar.gz"]
-            control_archive_type = "gz"
-        elif b"control.tar.xz" in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
-            control_archive_type = "xz"
-        elif b"control.tar.zst" in dpkg_archive.archived_files:
-            control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
-            control_archive_type = "zst"
-        else:
-            raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
-        self._log.debug("found controlgz: %s", control_archive)
+            return control_archive, "gz"
 
+        if b"control.tar.xz" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.xz"]
+            return control_archive, "xz"
+
+        if b"control.tar.zst" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
+            return control_archive, "zst"
+
+        raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
+
+    def _extract_message_from_tar(self, fd: SupportsRead[bytes], archive_name: str = "undefined") -> Message[str, str]:
+        """Extract the control file in a tar archive from a decompressed archive fileobj"""
+        self._log.debug("opened %s control archive: %s", archive_name, fd)
+        with tarfile.open(fileobj=io.BytesIO(fd.read())) as ctar:
+            self._log.debug("opened tar file: %s", ctar)
+            message = self._extract_message(ctar)
+        return message
+
+    def _extract_message_from_archive(
+        self, control_archive: IO[bytes], control_archive_type: Literal["gz", "xz", "zst"]
+    ) -> Message[str, str]:
+        """Extract the control file from a compressed archive fileobj"""
         if control_archive_type == "gz":
             with GzipFile(fileobj=control_archive) as gzf:
-                self._log.debug("opened gzip control archive: %s", gzf)
-                with tarfile.open(fileobj=io.BytesIO(gzf.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
-        elif control_archive_type == "xz":
+                return self._extract_message_from_tar(gzf, "gzip")
+
+        if control_archive_type == "xz":
             with lzma.open(control_archive) as xzf:
-                self._log.debug("opened xz control archive: %s", xzf)
-                with tarfile.open(fileobj=io.BytesIO(xzf.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
-        else:
+                return self._extract_message_from_tar(xzf, "xz")
+
+        if control_archive_type == "zst":
             zst = zstandard.ZstdDecompressor()
             with zst.stream_reader(control_archive) as reader:
-                self._log.debug("opened zst control archive: %s", reader)
-                with tarfile.open(fileobj=io.BytesIO(reader.read())) as ctar:
-                    self._log.debug("opened tar file: %s", ctar)
-                    message = self._extract_message(ctar)
+                return self._extract_message_from_tar(reader, "zst")
+
+        raise DpkgError(f"Unknown control archive type: {control_archive_type}")
+
+    def _process_dpkg_file(self, filename: str) -> Message[str, str]:
+        with Archive(filename) as archive:
+            control_archive, control_archive_type = self._read_archive(archive)
+            self._log.debug("found controlgz: %s", control_archive)
+            message = self._extract_message_from_archive(control_archive, control_archive_type)
 
         for req in REQUIRED_HEADERS:
             if req not in list(map(str.lower, message.keys())):
@@ -296,7 +338,7 @@ class Dpkg(_Dbase):
         return message
 
     @staticmethod
-    def get_epoch(version_str):
+    def get_epoch(version_str: str) -> tuple[int, str]:
         """Parse the epoch out of a package version string.
         Return (epoch, version); epoch is zero if not found."""
         try:
@@ -318,7 +360,7 @@ class Dpkg(_Dbase):
         return epoch, version_str[e_index + 1 :]
 
     @staticmethod
-    def get_upstream(version_str):
+    def get_upstream(version_str: str) -> tuple[str, str]:
         """Given a version string that could potentially contain both an upstream
         revision and a debian revision, return a tuple of both.  If there is no
         debian revision, return 0 as the second tuple element."""
@@ -331,7 +373,7 @@ class Dpkg(_Dbase):
         return version_str[0:d_index], version_str[d_index + 1 :]
 
     @staticmethod
-    def split_full_version(version_str):
+    def split_full_version(version_str: str) -> tuple[int, str, str]:
         """Split a full version string into epoch, upstream version and
         debian revision.
         :param: version_str
@@ -341,7 +383,7 @@ class Dpkg(_Dbase):
         return epoch, upstream_rev, debian_rev
 
     @staticmethod
-    def get_alphas(revision_str):
+    def get_alphas(revision_str: str) -> tuple[str, str]:
         """Return a tuple of the first non-digit characters of a revision (which
         may be empty) and the remaining characters."""
         # get the index of the first digit
@@ -354,7 +396,7 @@ class Dpkg(_Dbase):
         return revision_str, ""
 
     @staticmethod
-    def get_digits(revision_str):
+    def get_digits(revision_str: str) -> tuple[int, str]:
         """Return a tuple of the first integer characters of a revision (which
         may be empty) and the remains."""
         # If the string is empty, return (0,'')
@@ -370,14 +412,14 @@ class Dpkg(_Dbase):
         return int(revision_str), ""
 
     @staticmethod
-    def listify(revision_str):
+    def listify(revision_str: str) -> list[str | int]:
         """Split a revision string into a list of alternating between strings and
         numbers, padded on either end to always be "str, int, str, int..." and
         always be of even length.  This allows us to trivially implement the
         comparison algorithm described at section 5.6.12 in:
         https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
-        result = []
+        result: list[str | int] = []
         while revision_str:
             rev_1, remains = Dpkg.get_alphas(revision_str)
             rev_2, remains = Dpkg.get_digits(remains)
@@ -387,7 +429,7 @@ class Dpkg(_Dbase):
 
     # pylint: disable=invalid-name,too-many-return-statements
     @staticmethod
-    def dstringcmp(a, b):
+    def dstringcmp(a: str, b: str) -> Literal[-1, 0, 1]:
         """debian package version string section lexical sort algorithm
 
         "The lexical comparison is a comparison of ASCII values modified so
@@ -397,40 +439,48 @@ class Dpkg(_Dbase):
 
         if a == b:
             return 0
-        try:
-            for i, char in enumerate(a):
-                if char == b[i]:
-                    continue
-                # "a tilde sorts before anything, even the end of a part"
-                # (emptyness)
-                if char == "~":
-                    return -1
-                if b[i] == "~":
-                    return 1
-                # "all the letters sort earlier than all the non-letters"
-                if char.isalpha() and not b[i].isalpha():
-                    return -1
-                if not char.isalpha() and b[i].isalpha():
-                    return 1
-                # otherwise lexical sort
-                if ord(char) > ord(b[i]):
-                    return 1
-                if ord(char) < ord(b[i]):
-                    return -1
-        except IndexError:
-            # a is longer than b but otherwise equal, hence greater
-            # ...except for goddamn tildes
-            if char == "~":
+
+        def _tilde_case(longer: str | None) -> Literal[-1, 1]:
+            if longer is None:
+                raise DpkgVersionError("Cannot compare None to ~, something has gone horribly awry.")
+            if longer[0] == "~":
                 return -1
             return 1
-        # if we get here, a is shorter than b but otherwise equal, hence lesser
-        # ...except for goddamn tildes
-        if b[len(a)] == "~":
-            return 1
-        return -1
+
+        for char_a, char_b in zip_longest(a, b, fillvalue=None):
+            if char_b is None:
+                # a is longer than b but otherwise equal, hence greater
+                # ...except for goddamn tildes
+                return _tilde_case(char_a)
+
+            if char_a is None:
+                # if we get here, a is shorter than b but otherwise equal, hence lesser
+                # ...except for goddamn tildes
+                return -1 if _tilde_case(char_b) == 1 else 1
+
+            if char_a == char_b:
+                continue
+
+            # "a tilde sorts before anything, even the end of a part"
+            # (emptyness)
+            if char_a == "~":
+                return -1
+            if char_b == "~":
+                return 1
+            # "all the letters sort earlier than all the non-letters"
+            if char_a.isalpha() and not char_b.isalpha():
+                return -1
+            if not char_a.isalpha() and char_b.isalpha():
+                return 1
+            # otherwise lexical sort
+            if ord(char_a) > ord(char_b):
+                return 1
+            if ord(char_a) < ord(char_b):
+                return -1
+        raise DpkgVersionError("Should have matched equal in the beginning")
 
     @staticmethod
-    def compare_revision_strings(rev1, rev2):
+    def compare_revision_strings(rev1: str, rev2: str) -> Literal[-1, 0, 1]:
         """Compare two debian revision strings as described at
         https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
         """
@@ -443,40 +493,49 @@ class Dpkg(_Dbase):
         list2 = Dpkg.listify(rev2)
         if list1 == list2:
             return 0
-        try:
-            for i, item in enumerate(list1):
-                # explicitly raise IndexError if we've fallen off the edge of list2
-                if i >= len(list2):
-                    raise IndexError
-                # just in case
-                if not isinstance(item, list2[i].__class__):
-                    raise DpkgVersionError(f"Cannot compare '{item}' to {list2[i]}, something has gone horribly awry.")
-                # if the items are equal, next
-                if item == list2[i]:
-                    continue
-                # numeric comparison
-                if isinstance(item, int):
-                    if item > list2[i]:
-                        return 1
-                    if item < list2[i]:
-                        return -1
-                else:
-                    # string comparison
-                    return Dpkg.dstringcmp(item, list2[i])
-        except IndexError:
-            # rev1 is longer than rev2 but otherwise equal, hence greater
-            # ...except for goddamn tildes
-            if list1[len(list2)][0][0] == "~":
+
+        def _tilde_case(elem: str | int | None) -> Literal[-1, 1]:
+            if isinstance(elem, str):
+                if elem[0] == "~":
+                    return -1
+                return 1
+            raise DpkgVersionError(f"Cannot compare '{elem}' to ~, something has gone horribly awry.")
+
+        def _numeric_case(i1: int, i2: int) -> Literal[-1, 0, 1]:
+            if i1 > i2:
+                return 1
+            if i1 < i2:
                 return -1
-            return 1
-        # rev1 is shorter than rev2 but otherwise equal, hence lesser
-        # ...except for goddamn tildes
-        if list2[len(list1)][0][0] == "~":
-            return 1
-        return -1
+            return 0
+
+        for i1, i2 in zip_longest(list1, list2, fillvalue=None):
+            if i2 is None:
+                # rev1 is longer than rev2 but otherwise equal, hence greater
+                # ...except for goddamn tildes
+                return _tilde_case(i1)
+
+            if i1 is None:
+                # rev1 is shorter than rev2 but otherwise equal, hence lesser
+                # ...except for goddamn tildes
+                return -1 if _tilde_case(i2) == 1 else 1
+
+            # if the items are equal, next
+            if isinstance(i1, int) and isinstance(i2, int):
+                cmp = _numeric_case(i1, i2)
+            elif isinstance(i1, str) and isinstance(i2, str):
+                cmp = Dpkg.dstringcmp(i1, i2)
+            else:
+                raise DpkgVersionError(f"Cannot compare '{i1}' to {i2}, something has gone horribly awry.")
+
+            if cmp == 0:
+                continue
+
+            return cmp
+
+        raise DpkgVersionError("Should have matched equal in the beginning")
 
     @staticmethod
-    def compare_versions(ver1, ver2):
+    def compare_versions(ver1: str, ver2: str) -> Literal[-1, 0, 1]:
         """Function to compare two Debian package version strings,
         suitable for passing to list.sort() and friends."""
         if ver1 == ver2:
@@ -509,14 +568,14 @@ class Dpkg(_Dbase):
         return 0
 
     @staticmethod
-    def compare_versions_key(x):
+    def compare_versions_key(x: str) -> SupportsAllComparisons:
         """Uses functools.cmp_to_key to convert the compare_versions()
         function to a function suitable to passing to sorted() and friends
         as a key."""
         return cmp_to_key(Dpkg.compare_versions)(x)
 
     @staticmethod
-    def dstringcmp_key(x):
+    def dstringcmp_key(x: str) -> SupportsAllComparisons:
         """Uses functools.cmp_to_key to convert the dstringcmp()
         function to a function suitable to passing to sorted() and friends
         as a key."""
