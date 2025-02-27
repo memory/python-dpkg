@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydpkg"
-version = "1.9.3"
+version = "1.9.4"
 description = "A python library for parsing debian package control headers and version strings"
 authors = ["Nathan J. Mehl <pypi@memory.blank.org>"]
 homepage = "https://github.com/memory/python-dpkg"
@@ -27,17 +27,17 @@ readme = "README.md"
 dpkg-inspect = "pydpkg.dpkg_inspect:main"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
+python = ">=3.9.2,<4.0"
 arpy = "^2.3.0"
 six = "^1.16.0"
-PGPy = "0.6.0"
-zstandard = "^0.22.0"
-cryptography = ">=39.0.1"
+PGPy = {git = "https://github.com/memory/PGPy.git", rev = "26c95725d460e731b6b900d21a7897da73d6410b"}
+zstandard = "^0.23.0"
+cryptography = ">=44.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
-ruff = "0.3.4"
-mypy = "^1.13.0"
+ruff = "0.9.8"
+mypy = "^1.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
