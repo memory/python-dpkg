@@ -30,7 +30,7 @@ dpkg-inspect = "pydpkg.dpkg_inspect:main"
 python = ">=3.9.2,<4.0"
 arpy = "^2.3.0"
 six = "^1.16.0"
-PGPy = {git = "https://github.com/memory/PGPy.git", rev = "26c95725d460e731b6b900d21a7897da73d6410b"}
+PGPy13 = "0.6.1rc1"
 zstandard = "^0.23.0"
 cryptography = ">=44.0.1"
 
