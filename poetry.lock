@@ -265,24 +265,20 @@ files = [
 ]
 
 [[package]]
-name = "PGPy"
-version = "0.6.0"
-description = "Pretty Good Privacy for Python"
+name = "pgpy13"
+version = "0.6.1rc1"
+description = "Pretty Good Privacy for Python (temporary fork for py3.13 compatability)"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "pgpy13-0.6.1rc1-py3-none-any.whl", hash = "sha256:c8d6cf3dea0cc23373ff1c4ed79a6a4bf39216bf54970bae7cca656003d1aa4f"},
+    {file = "pgpy13-0.6.1rc1.tar.gz", hash = "sha256:398d71b8c5b0852c79c7b4598c0c98f7458f39b439b62068cfb49b19caaf5912"},
+]
 
 [package.dependencies]
-cryptography = ">=3.3.2"
+cryptography = ">=38.0.0"
 pyasn1 = "*"
-
-[package.source]
-type = "git"
-url = "https://github.com/memory/PGPy.git"
-reference = "26c95725d460e731b6b900d21a7897da73d6410b"
-resolved_reference = "26c95725d460e731b6b900d21a7897da73d6410b"
 
 [[package]]
 name = "pluggy"
@@ -558,4 +554,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9.2,<4.0"
-content-hash = "537437859dbc5a09b113635bf440c8cf20a96508bb4dccda1a68b9b275471c6d"
+content-hash = "bb3c22b23a89d79d1cc8cf560012fa76157ff164ae20b0682b45da5263bb87b5"
