@@ -271,7 +271,7 @@ class Dpkg(_Dbase):
         self._log.debug("got control message: %s", message)
         return message
 
-    def _read_archive(self, dpkg_archive: Archive) -> tuple[ArchiveFileData, Literal["gz", "xz", "zst"]]:
+    def _read_archive(self, dpkg_archive: Archive) -> tuple[ArchiveFileData, Literal["gz", "xz", "zst", "none"]]:
         """Search an opened archive for a compressed control file and return it plus the compression"""
         dpkg_archive.read_all_headers()
 
@@ -287,6 +287,10 @@ class Dpkg(_Dbase):
             control_archive = dpkg_archive.archived_files[b"control.tar.zst"]
             return control_archive, "zst"
 
+        if b"control.tar" in dpkg_archive.archived_files:
+            control_archive = dpkg_archive.archived_files[b"control.tar"]
+            return control_archive, "none"
+
         raise DpkgMissingControlGzipFile("Corrupt dpkg file: no control.tar.gz/xz/zst file in ar archive.")
 
     def _extract_message_from_tar(self, fd: SupportsRead[bytes], archive_name: str = "undefined") -> Message[str, str]:
@@ -298,7 +302,7 @@ class Dpkg(_Dbase):
         return message
 
     def _extract_message_from_archive(
-        self, control_archive: IO[bytes], control_archive_type: Literal["gz", "xz", "zst"]
+        self, control_archive: IO[bytes], control_archive_type: Literal["gz", "xz", "zst", "none"]
     ) -> Message[str, str]:
         """Extract the control file from a compressed archive fileobj"""
         if control_archive_type == "gz":
@@ -313,6 +317,9 @@ class Dpkg(_Dbase):
             zst = zstandard.ZstdDecompressor()
             with zst.stream_reader(control_archive) as reader:
                 return self._extract_message_from_tar(reader, "zst")
+
+        if control_archive_type == "none":
+            return self._extract_message_from_tar(control_archive, "none")
 
         raise DpkgError(f"Unknown control archive type: {control_archive_type}")
 
